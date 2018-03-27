@@ -305,52 +305,10 @@ sub findMotif {
        #my $id = $cpt;
        ##print $id,"\n";
 
-          # $sequences{$start}{'end'}=$end;
-          # $sequences{$start}{'chr'}=$chr;
-          # ###### $sequences{$start}{'subSeq'}=$subSeq;
-          # $sequences{$start}{'strand'}=$strand;
-
           $hashChr{$chr}{$start}{'end'}=$end;
           $hashChr{$chr}{$start}{'strand'}=$strand;
 
-      #  $sequences{$id}{'start'}=$start;
-      #  $sequences{$id}{'end'}=$end;
-      #  $sequences{$id}{'chr'}=$chr;
-      #  $sequences{$id}{'subSeq'}=$subSeq;
-      #  $sequences{$id}{'strand'}=$strand;
-#       print "$start\t$end\t$chr\t$strand\n";
-#       $sequences{$id}{'start'}=$start;
-
-       #if ($m eq $motifIndComp){
-       ###DEBUG print "MOTIF INDIRECT : $motifIndComp\nMOTIF M : $m\n\n";
-      #  foreach my $mP (@motifPlusD){
-      #    #print "Mon motif $m équivalent à motif PLUS $mP\n";
-      #    if ($m ne $mP){
-      #      #print "Mon motif $m équivalent à motif PLUS $mP\n";
-      #      $sensMotif = "-";
-      #    #DEBUG
-      #    #print "\n=====DEBUT=====\n",$subSeq,"\n",$m,"\n",$motifIndComp,"\n======\n";
-      #    #DEBUG
-      #    }
-      #    elsif ($m eq $mP) {
-      #      $sensMotif ="+";
-      #
-      #      foreach my $mN(@motifMInusD){
-      #        if ($m eq $mN){
-      #          $sensMotif ="?";
-      #        }
-      #      }
-      #    }
-
       }
-
-
-    #  if ($allMotif{$keysM}->{sens} eq "-"){
-    #    print "$motif\t$strand\n";
-    #  }
-
-
-    # print $motif,"\t",$strand,"\n";
     }
   }
   #print Dumper \%allMotif;
