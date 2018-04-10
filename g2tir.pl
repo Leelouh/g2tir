@@ -5,6 +5,7 @@ use Bio::SeqIO;
 use Data::Dumper;
 use Bio::DB::Fasta;
 use Bio::Perl;
+use Text::Levenshtein qw(distance);
 #use Devel::NYTProf;
 
 use Getopt::Long qw/:config bundling auto_abbrev permute/;
@@ -54,7 +55,7 @@ my %IUPAC = (
 
 
 
-sub iupac {
+sub iupacToRegex {
   my ($self) = @_;
   print "self : $self\n";
   my $re = join '', map $IUPAC{ $_ }, split '', $self;
@@ -63,8 +64,11 @@ sub iupac {
 }
 
 # print $motifDirect,"\n";
-my $momo = "TTAACHYNH";
-my $motifDirect = iupac($momo);
+
+my $iupac = "TTAACHYNH";
+my $motifDirect = iupacToRegex($iupac);
+#my $motifDirect = "TTAAC[CAT][CT].[TCA]";
+
 #print $ttt;
 
 # GetOptions ("help|?|h" => \$help,
@@ -261,9 +265,9 @@ sub findPairsMotif {
 #           my $reverse = revCompMotif($listP);
 # print $reverse,"\n";
 
-          my $truc = substr($seq,$start,$motifSize);
+          my $R1 = substr($seq,$start,$motifSize);
           #print "startM : $truc\n";
-          my $reverse = revCompMotif($truc);
+          my $reverse = revCompMotif($R1);
           #print "$reverse\n";
 
           my $substr = substr($seq, $deb,$max_length);
@@ -280,27 +284,44 @@ sub findPairsMotif {
             my $start2=$posNe-$motifSize+$deb;
             my $endNe = $posNe+$deb;
 
-            my $revsub=substr($seq,$start2, $motifSize);
+            my $R2=substr($seq,$start2, $motifSize);
 
+            my $R1_uc = uc($R1);
+            my $R2_uc=revCompMotif(uc($R2));
 
             my $PBLE = substr($seq,$start,($endNe-$start));
-
-
-            my ($a,$b) = aln($truc,$revsub);
-            #print "$truc\n$revsub\n\n";
-            #
-            # print "taille truc :", length($truc),"\n";
-            # print "taille a :", length($a),"\n";
-            if (length($truc)== length($a)){
-              my $debT = $start+1; #sinon samtools faidx commence une base plus tôt (décalage)
+            #my $distances = distance($truc,$revsubC);
+            #print "$chr\t$start\t$endNe\t$truc\t$revsub\t$distances\n";
+            
+            if ( distance($R1_uc,$R2_uc) <= 1){
+                my $debT = $start+1; #sinon samtools faidx commence une base plus tôt (décalage)
                   #  print "R1 : $motif1\nR2 : $motif2Temp\nREV: $motif2\n\n";
                   #  print $a,"\n",$b,"\n\n";
-            print "$chr\t$debT\t$endNe";
+            print "$chr\t$debT\t$endNe\t",distance($R1_uc,$R2_uc);
             if ($motifPrint){
-              print "\t$truc\t$revsub";
+              print "\t$R1\t$R2";
             }
             print "\n";
             }
+
+
+
+
+            # my ($a,$b) = aln($R1,$R2);
+            # #print "$R1\n$R2\n\n";
+            
+            # # print "taille truc :", length($R1),"\n";
+            # # print "taille a :", length($a),"\n";
+            # if (length($R1)== length($a)){
+            #   my $debT = $start+1; #sinon samtools faidx commence une base plus tôt (décalage)
+            #       #  print "R1 : $motif1\nR2 : $motif2Temp\nREV: $motif2\n\n";
+            #       #  print $a,"\n",$b,"\n\n";
+            # print "$chr\t$debT\t$endNe";
+            # if ($motifPrint){
+            #   print "\t$R1\t$R2";
+            # }
+            # print "\n";
+            # }
          }
         }
       }
@@ -335,4 +356,3 @@ sub aln {
   #print "Alignement : \n$align1\n$align2";
   return ($align1,$align2);
 }
-
