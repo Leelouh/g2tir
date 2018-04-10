@@ -21,7 +21,10 @@ my $max_length = 4000;
 my $min_length = 43;
 
 ##VRAI
-my $motifDirect = "TTAAC[CAT][CT].[TCA]";
+#my $motifDirect = "TTAAC[CAT][CT].[TCA]";
+#my $motifRegex = "TTAACHYNH";
+#my $motifDirect = iupac($motifRegex);
+#print $motifDirect;
 
 #my $motifDirect = "TTAACTTTT";
 
@@ -30,6 +33,39 @@ my ($motifPrint,$motifDegenerated);
 GetOptions ("motif" => \$motifPrint, #print les TIR
             "degen" => \$motifDegenerated #dégénère le motif
             );
+
+my %IUPAC = (
+ A => 'A',
+ C => 'C',
+ G => 'G',
+ T => 'T',
+ R => '[AG]',
+ Y => '[CT]',
+ M => '[AC]',
+ K => '[GT]',
+ W => '[AT]',
+ S => '[GC]',
+ B => '[CGT]',
+ D => '[AGT]',
+ H => '[ACT]',
+ V => '[ACG]',
+ N => '[ACGT]',
+);
+
+
+
+sub iupac {
+  my ($self) = @_;
+  print "self : $self\n";
+  my $re = join '', map $IUPAC{ $_ }, split '', $self;
+  #print $re,"\n";
+  return $re;
+}
+
+# print $motifDirect,"\n";
+my $momo = "TTAACHYNH";
+my $motifDirect = iupac($momo);
+#print $ttt;
 
 # GetOptions ("help|?|h" => \$help,
 #             "debug+" => \$debug,
@@ -157,26 +193,26 @@ else {
 
 my $try = findPairsMotif($tabP, $tabN);
 
-sub motifSingle {
-  #print "motifDegenere\n";
+# sub motifSingle {
+#   #print "motifDegenere\n";
 
-  my ($motif)=@_;
-  my $cpt = 0;
-  my @listMotifs;
-#  print length($motif);
-  for (my $i=0; $i<length($motif); $i++){
-    my $id = $cpt;
-    $cpt++;
-    my $copy = $motif;
-      substr ($copy,$i,1) = ".";
-      push (@listMotifs, $copy);
-  }
+#   my ($motif)=@_;
+#   my $cpt = 0;
+#   my @listMotifs;
+# #  print length($motif);
+#   for (my $i=0; $i<length($motif); $i++){
+#     my $id = $cpt;
+#     $cpt++;
+#     my $copy = $motif;
+#       substr ($copy,$i,1) = ".";
+#       push (@listMotifs, $copy);
+#   }
 
-  # foreach my $t(@listMotifs){
-  #   print $t,"\n";
-  # }
-  return (\@listMotifs);
-}
+#   # foreach my $t(@listMotifs){
+#   #   print $t,"\n";
+#   # }
+#   return (\@listMotifs);
+# }
 
 
 sub findPairsMotif {
@@ -189,8 +225,8 @@ sub findPairsMotif {
   my $seqio_obj = Bio::SeqIO->new(-file => "$fa", #on recupere la sequence depuis notre fichier (arg 0)
                                   -format => "fasta" );
 
-       my $listP = join ('|', @$tabP);
-       my $listN = join ('|', @$tabN);
+  my $listP = join ('|', @$tabP);
+  my $listN = join ('|', @$tabN);
 
   while ( my $seq_obj = $seqio_obj->next_seq ) {
     my %h;
