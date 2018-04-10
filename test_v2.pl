@@ -33,8 +33,8 @@ use Devel::NYTProf;
 
 ############ RECHERCHE TIR 4
 #my $motifDirect = "TT[GT]A."; #mon motif direct
-my $fa = "chr1_2_test.fa";
-#my $fa = "/home/lhelou/Data/chr11.fa";
+#my $fa = "chr1_2_test.fa";
+my $fa = "/home/lhelou/Data/chr22.fa";
 
 my $max_length = 4000;
 my $min_length = 43;
@@ -136,6 +136,8 @@ my %patterns = motifDegenere($motifDirect);
 #print Dumper \%patterns;
 my $try = findPairsMotif(%patterns);
 
+
+
 sub findPairsMotif {
 
   my (%allPatterns)= @_;
@@ -150,6 +152,7 @@ sub findPairsMotif {
     my ($start, $end, $subSeq);
     my ($moPos,$moNe);
 
+    my @startTab;
     foreach my $id (keys %patterns){
       foreach my $mo (keys %{$patterns{$id}}){
         if ($patterns{$id}{$mo} eq "+"){
@@ -160,32 +163,52 @@ sub findPairsMotif {
         }
       }
 
-    
 
 
       while ($seq =~ m/$moPos/gi){
+
         $chr =~ s/(chr* ).*/$1/;
-        my $pos=pos($seq); #pos en partant de la fin de notre séquence
-        my $start = $pos - $lengthDiv;#- 8;
-        my $end = $pos;
-        my $deb = $end+$min_length;
-        my $loo = $end+$max_length;
+        #print $chr;
+         my $pos=pos($seq); #pos en partant de la fin de notre séquence
+         my $start = $pos - $lengthDiv;#- 8;
+         my $end = $pos;
+         my $deb = $end+$min_length;
+         my $loo = $end+$max_length;
+#push @chr, $chr unless $data{$chr};
+#unless ($start ~~ @startTab){
+        #push (@startTab, $start) unless $start ~~@startTab;#
+        unless ($start ~~ @startTab){
+          push (@startTab, $start);
 
-        my $substr = substr($seq, $deb,$loo);
-        while ($substr =~m/$moNe/gi){
-          my $posNe = pos($substr);
-          my $start2=$posNe-$lengthDiv+$deb;
-          my $endNe = $posNe+$deb;
-          print "$chr\t$start\t$endNe\n";
 
-#          $h{$chr}{$start}{$endNe}++;
+          my $substr = substr($seq, $deb,$loo);
+          while ($substr =~m/$moNe/gi){
+            my $posNe = pos($substr);
+            my $start2=$posNe-$lengthDiv+$deb;
+            my $endNe = $posNe+$deb;
+#            print "$chr\t$start\t$endNe\n";
+            $h{$chr}{$start}{$endNe}++;
+          }
+
         }
+#}# unless exist);
+        # my $substr = substr($seq, $deb,$loo);
+        # while ($substr =~m/$moNe/gi){
+        #   my $posNe = pos($substr);
+        #   my $start2=$posNe-$lengthDiv+$deb;
+        #   my $endNe = $posNe+$deb;
+#           print "$chr\t$start\n";#$endNe\n";
+#
+# #          $h{$chr}{$start}{$endNe}++;
+#         }
 
       }
+
     }
-    # $Data::Dumper::Sortkeys = 1;
-    # print Dumper \%h;
+     $Data::Dumper::Sortkeys = 1;
+     print Dumper \%h;
   }
+
 }
 
 __END__
