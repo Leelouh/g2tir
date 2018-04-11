@@ -5,8 +5,11 @@ use Bio::SeqIO;
 use Data::Dumper;
 use Bio::DB::Fasta;
 use Bio::Perl;
-use Text::Levenshtein qw(distance);
-#use Devel::NYTProf;
+#use Text::Levenshtein::XS qw/distance/;
+use Text::LevenshteinXS qw/distance/;
+#use Text::Levenshtein::Damerau::XS qw/xs_edistance/;
+#use Text::Levenshtein qw(distance);
+use Devel::NYTProf;
 
 use Getopt::Long qw/:config bundling auto_abbrev permute/;
 
@@ -14,7 +17,18 @@ use Getopt::Long qw/:config bundling auto_abbrev permute/;
 # perl test.pl motif genome
 # ex : perl test.pl TTAAC[CAT][CT].[TCA] /home/lhelou/data/human_data/grch38-p10.fa
 
-my $fa = "chr1_2_test.fa";
+#my $output = "/home/lhelou/Documents/g2tir/test/chr22_xsCol.out";
+
+my $output = "/home/lhelou/Documents/g2tir/test/chr1_2_test.out";
+
+
+#my $output = "/home/lhelou/scripts/perl/g2TIR/new/test/chr22.out";
+open (my $fh, '>', $output);
+
+
+my $fa = "/home/lhelou/Documents/g2tir/chr1_2_test.fa";
+#my $fa = "/home/lhelou/scripts/perl/g2TIR/new/test/chr22.fa";
+
 #my $fa = "/home/lhelou/Data/chr22.fa";
 #my $fa = "/home/lhelou/data/human_data/grch38-p10.fa";
 
@@ -297,11 +311,11 @@ sub findPairsMotif {
                 my $debT = $start+1; #sinon samtools faidx commence une base plus tôt (décalage)
                   #  print "R1 : $motif1\nR2 : $motif2Temp\nREV: $motif2\n\n";
                   #  print $a,"\n",$b,"\n\n";
-            print "$chr\t$debT\t$endNe\t",distance($R1_uc,$R2_uc);
+            print $fh "$chr\t$debT\t$endNe\t",distance($R1_uc,$R2_uc);
             if ($motifPrint){
-              print "\t$R1\t$R2";
+              print $fh "\t$R1\t$R2";
             }
-            print "\n";
+            print $fh "\n";
             }
 
 
