@@ -9,7 +9,7 @@ use Bio::Perl;
 use Text::LevenshteinXS qw/distance/;
 #use Text::Levenshtein::Damerau::XS qw/xs_edistance/;
 #use Text::Levenshtein qw(distance);
-use Devel::NYTProf;
+#use Devel::NYTProf;
 
 use Getopt::Long qw/:config bundling auto_abbrev permute/;
 
@@ -18,7 +18,7 @@ use Getopt::Long qw/:config bundling auto_abbrev permute/;
 # ex : perl test.pl TTAAC[CAT][CT].[TCA] /home/lhelou/data/human_data/grch38-p10.fa
 
 #my $output = "/home/lhelou/Documents/g2tir/test/chr22_xsCol.out";
-my $output = "/home/lhelou/Documents/g2tir/test/chr22_notDynamik_test.out";
+my $output = "chr1_2_test.out";
 #my $output = "/home/lhelou/Documents/g2tir/test/chr1_ech_degen.out";
 
 
@@ -29,7 +29,8 @@ open (my $fh, '>', $output);
 #my $fa = "/home/lhelou/Documents/g2tir/chr1_ech_test.fa";
 #my $fa = "/home/lhelou/scripts/perl/g2TIR/new/test/chr22.fa";
 
-my $fa = "/home/lhelou/Data/chr22.fa";
+my $fa = "chr1_2_test.fa";
+$fa = '/data/dbseq/Homo_sapiens/hg38/chr/chr22.fa';
 #my $fa = "/home/lhelou/data/human_data/grch38-p10.fa";
 
 my $max_length = 4000;
@@ -107,7 +108,7 @@ my $motifDirect = iupacToRegex($iupac);
 sub tailleMotif {
   my ($motif) = @_;
   my $cpt_lettre = 0; #initialisation du compteur de la taille du motif
-  my @motifD_tab = split //,$motif; #découpage de la string en tableau
+  my @motifD_tab = split //,$motif; #découpage de lacoucou string en tableau
   foreach my $l (@motifD_tab){            #on parcourt le tableau
     $cpt_lettre++;                        #à chaque lettre on incrémente le compteur
     if ($l =~ m/\]/){                     #si on rencontre un ] on "décrémente" le compteur
@@ -253,99 +254,47 @@ sub findPairsMotif {
     my ($start, $end, $subSeq);
 
 
-    my @startTab;
 
-      while ($seq =~ m/$listP/gio){
-        #  my $motif = qr/$listP/;
-        #  print "$listP\n$motif\n";
-        $chr =~ s/(chr* ).*/$1/;
+    while ($seq =~ m/$listP/gio){
+      $chr =~ s/(chr* ).*/$1/;
         #print $chr;
-         my $pos=pos($seq); #pos en partant de la fin de notre séquence
+      my $pos=pos($seq); #pos en partant de la fin de notre séquence
 
 
-         my $start = $pos - $motifSize; #$lengthDiv;#- 8;
-         my $end = $pos;
-         my $deb = $end+$min_length;
-#         print "$chr\t$pos\t$start\t$pos\n";
-         #my $loo = $end+$max_length;
-         #my $loo = $max_length;
-         #print $loo,"\n";
-#push @chr, $chr unless $data{$chr};
-#unless ($start ~~ @startTab){
-        #push (@startTab, $start) unless $start ~~@startTab;#
-        unless ($start ~~ @startTab){
-          push (@startTab, $start);
-          #print $start,"\n";
-#           my $reverse = revCompMotif($listP);
-# print $reverse,"\n";
+      my $start = $pos - $motifSize; #$lengthDiv;#- 8;
+      my $end = $pos;
+      my $deb = $end+$min_length;
 
-          my $R1 = substr($seq,$start,$motifSize);
-          #print "startM : $truc\n";
-          my $reverse = revCompMotif($R1);
-          #print "$reverse\n";
+      my $R1 = substr($seq,$start,$motifSize);
+      my $R1_uc = uc($R1);
 
-          my $substr = substr($seq, $deb,$max_length);
+      my $substr = substr($seq, $deb,$max_length);
 
-          #my $degRev = motifSingle($reverse);
-          #my $listRev = join ('|', @$degRev);
-          #print $listN,"\n";
+      while ($substr  =~m/$listN/gio){
 
-          #while ($substr =~m/$listN/gio){
-          while ($substr  =~m/$listN/gio){
+	my $posNe = pos($substr);
+	my $start2=$posNe-$motifSize+$deb;
+	my $endNe = $posNe+$deb;
 
-            #print "$substr\n$listRev\n\n";
-            my $posNe = pos($substr);
-            my $start2=$posNe-$motifSize+$deb;
-            my $endNe = $posNe+$deb;
+	my $R2=substr($seq,$start2, $motifSize);
 
-            my $R2=substr($seq,$start2, $motifSize);
+	my $R2_uc=revCompMotif(uc($R2));
 
-            my $R1_uc = uc($R1);
-            my $R2_uc=revCompMotif(uc($R2));
+	my $PBLE = substr($seq,$start,($endNe-$start));
 
-            my $PBLE = substr($seq,$start,($endNe-$start));
-            #my $distances = distance($truc,$revsubC);
-            #print "$chr\t$start\t$endNe\t$truc\t$revsub\t$distances\n";
-
-            if ( distance($R1_uc,$R2_uc) <= 1){
-                my $debT = $start+1; #sinon samtools faidx commence une base plus tôt (décalage)
-                  #  print "R1 : $motif1\nR2 : $motif2Temp\nREV: $motif2\n\n";
-                  #  print $a,"\n",$b,"\n\n";
-            print $fh "$chr\t$debT\t$endNe\t",distance($R1_uc,$R2_uc);
-            if ($motifPrint){
-              print $fh "\t$R1\t$R2";
-            }
-            print $fh "\n";
-            }
-
-
-
-
-            # my ($a,$b) = aln($R1,$R2);
-            # #print "$R1\n$R2\n\n";
-
-            # # print "taille truc :", length($R1),"\n";
-            # # print "taille a :", length($a),"\n";
-            # if (length($R1)== length($a)){
-            #   my $debT = $start+1; #sinon samtools faidx commence une base plus tôt (décalage)
-            #       #  print "R1 : $motif1\nR2 : $motif2Temp\nREV: $motif2\n\n";
-            #       #  print $a,"\n",$b,"\n\n";
-            # print "$chr\t$debT\t$endNe";
-            # if ($motifPrint){
-            #   print "\t$R1\t$R2";
-            # }
-            # print "\n";
-            # }
-         }
-        }
+	if ( distance($R1_uc,$R2_uc) <= 1){
+	  my $debT = $start+1; #sinon samtools faidx commence une base plus tôt (décalage)
+	  print $fh "$chr\t$debT\t$endNe\t",distance($R1_uc,$R2_uc);
+	  if ($motifPrint){
+	    print $fh "\t$R1\t$R2";
+	  }
+	  print $fh "\n";
+	}
       }
-
-
-    #  $Data::Dumper::Sortkeys = 1;
-    #  print Dumper \%h;
+    }
   }
-
 }
+
 #aln("TTAACTTTT","aaaagtgaa");
 sub aln {
   my ($s1,$s2)=@_;
