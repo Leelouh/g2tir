@@ -18,18 +18,18 @@ use Getopt::Long qw/:config bundling auto_abbrev permute/;
 # ex : perl test.pl TTAAC[CAT][CT].[TCA] /home/lhelou/data/human_data/grch38-p10.fa
 
 #my $output = "/home/lhelou/Documents/g2tir/test/chr22_xsCol.out";
-
-my $output = "/home/lhelou/Documents/g2tir/test/chr1_2_test.out";
+my $output = "/home/lhelou/Documents/g2tir/test/chr22_notDynamik_test.out";
+#my $output = "/home/lhelou/Documents/g2tir/test/chr1_ech_degen.out";
 
 
 #my $output = "/home/lhelou/scripts/perl/g2TIR/new/test/chr22.out";
 open (my $fh, '>', $output);
 
 
-my $fa = "/home/lhelou/Documents/g2tir/chr1_2_test.fa";
+#my $fa = "/home/lhelou/Documents/g2tir/chr1_ech_test.fa";
 #my $fa = "/home/lhelou/scripts/perl/g2TIR/new/test/chr22.fa";
 
-#my $fa = "/home/lhelou/Data/chr22.fa";
+my $fa = "/home/lhelou/Data/chr22.fa";
 #my $fa = "/home/lhelou/data/human_data/grch38-p10.fa";
 
 my $max_length = 4000;
@@ -306,7 +306,7 @@ sub findPairsMotif {
             my $PBLE = substr($seq,$start,($endNe-$start));
             #my $distances = distance($truc,$revsubC);
             #print "$chr\t$start\t$endNe\t$truc\t$revsub\t$distances\n";
-            
+
             if ( distance($R1_uc,$R2_uc) <= 1){
                 my $debT = $start+1; #sinon samtools faidx commence une base plus tôt (décalage)
                   #  print "R1 : $motif1\nR2 : $motif2Temp\nREV: $motif2\n\n";
@@ -323,7 +323,7 @@ sub findPairsMotif {
 
             # my ($a,$b) = aln($R1,$R2);
             # #print "$R1\n$R2\n\n";
-            
+
             # # print "taille truc :", length($R1),"\n";
             # # print "taille a :", length($a),"\n";
             # if (length($R1)== length($a)){
