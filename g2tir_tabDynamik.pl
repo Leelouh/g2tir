@@ -274,12 +274,9 @@ sub findPairsMotif {
 	my $dist = distance($R1_uc,$R2_uc);
 	if ( $dist <= 1){
 	  #print $fh join ("\t", $chr, $pStart, $nEndPos, $nEndPos- $pStart, $dist);
-    print $fh join ("\t", $chr, $pStart+1, $nEndPos,$dist);
-	  if ($motifPrint){
-      print $fh "\t";
-	    print $fh join ("\t", $R1, $R2);
-	  }
-	  print $fh "\n";
+    my @out = ($chr, $pStart, $nEndPos, $nEndPos- $pStart, $dist);
+    push @out,  ($R1, $R2) if $motifPrint;
+    print $fh join ("\t", @out), "\n";
 	     }
       }
     }
