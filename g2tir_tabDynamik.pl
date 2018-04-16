@@ -18,7 +18,7 @@ use Getopt::Long qw/:config bundling auto_abbrev permute/;
 
 #my $output = "/home/lhelou/Documents/g2tir/test/chr22_xsCol.out";
 
-my $output = "chr2_dynamik_test.out";
+my $output = "chr2_dynamik_test_16_4_18_b.out";
 
 
 #my $output = "/home/lhelou/scripts/perl/g2TIR/new/test/chr22.out";
@@ -28,10 +28,13 @@ open (my $fh, '>', $output);
 #my $fa = "/home/lhelou/Documents/g2tir/chr1_ech_test.fa";
 #my $fa = "/home/lhelou/scripts/perl/g2TIR/new/test/chr22.fa";
 
-my $fa = "/home/lhelou/Data/chr22.fa";
-$fa = '/data/dbseq/Homo_sapiens/hg38/chr/chr22.fa';
-#$fa = 'chr1_2_test.fa';
+#my $fa = "/home/lhelou/Data/chr22.fa";
 
+
+
+#$fa = '/data/dbseq/Homo_sapiens/hg38/chr/chr22.fa';
+#$fa = 'chr1_2_test.fa';
+my $fa = "/home/lhelou/Documents/g2tir/echPos.fa";
 #my $fa = "/home/lhelou/data/human_data/grch38-p10.fa";
 
 my $max_length = 4000;
@@ -230,37 +233,38 @@ sub findPairsMotif {
       if (@endPos){
         my $index = 0;
         for my $value (@endPos){
-          if ($value < ($pEnd + $min_length)){
+        #  if ($value < ($pEnd + $min_length + $motifSize)){
+          if ($value < ($pEnd + $min_length+$motifSize)){
 	    $index++;
           } else {
 	    last
 	  }
         }
-	@endPos = $index < scalar @endPos ? @endPos[$index..$#endPos] : ();
+#        print
+	   @endPos = $index < scalar @endPos ? @endPos[$index..$#endPos] : ();
       }
       #warn Dumper \@endPos;
-      #warn sprintf "$chr term: %i -- %i elem -- range=%i (%i:%i)\n", $pEnd + $min_length, scalar @endPos, 
+      #warn sprintf "$chr term: %i -- %i elem -- range=%i (%i:%i)\n", $pEnd + $min_length, scalar @endPos,
       #scalar @endPos ? ($endPos[$#endPos]- $endPos[0]+1,$endPos[0], $endPos[$#endPos]) : (0, 0, 0);
       $minSkyline = $pEnd + $min_length;
-      $maxSkyline = $minSkyline + $max_length;
 
       my $R1 = substr($seq,$pStart,$motifSize);
       my $R1_uc = uc($R1);
       if (@endPos){
-	$startSubstr = $endPos[-1];
-	$length_extension = $max_length-($startSubstr-$pEnd - $min_length);
+      	$startSubstr = $endPos[-1];
+      	$length_extension = $max_length-($startSubstr-$pEnd-$min_length);
       }
       else {
-	$startSubstr = $minSkyline;
-	$length_extension = $max_length;
+      	$startSubstr = $minSkyline;
+      	$length_extension = $max_length-$min_length;
       }
       #warn sprintf ("# substr %i %ib\n", $startSubstr, $length_extension);
       my $substr = substr($seq, $startSubstr,$length_extension);
 
       while ($substr =~m/$listN/gio){
-	my $nPos = pos($substr);
-	my $nEnd = $nPos+$startSubstr;
-	push @endPos, $nEnd;
+      	my $nPos = pos($substr);
+      	my $nEnd = $nPos+$startSubstr;
+      	push @endPos, $nEnd;
       }
       foreach my $nEndPos (@endPos){
 	my $nStart=$nEndPos-$motifSize;
@@ -269,12 +273,14 @@ sub findPairsMotif {
 
 	my $dist = distance($R1_uc,$R2_uc);
 	if ( $dist <= 1){
-	  print $fh join ("\t", $chr, $pStart, $nEndPos, $nEndPos- $pStart, $dist);
+	  #print $fh join ("\t", $chr, $pStart, $nEndPos, $nEndPos- $pStart, $dist);
+    print $fh join ("\t", $chr, $pStart+1, $nEndPos,$dist);
 	  if ($motifPrint){
+      print $fh "\t";
 	    print $fh join ("\t", $R1, $R2);
 	  }
 	  print $fh "\n";
-	}
+	     }
       }
     }
   }
