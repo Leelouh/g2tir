@@ -5,10 +5,7 @@ use Bio::SeqIO;
 use Data::Dumper;
 use Bio::DB::Fasta;
 use Bio::Perl;
-#use Text::Levenshtein::XS qw/distance/;
 use Text::Levenshtein::XS qw/distance/;
-#use Text::Levenshtein::Damerau::XS qw/xs_edistance/;
-#use Text::Levenshtein qw(distance);
 
 use Getopt::Long qw/:config bundling auto_abbrev permute/;
 
@@ -18,7 +15,7 @@ use Getopt::Long qw/:config bundling auto_abbrev permute/;
 
 #my $output = "/home/lhelou/Documents/g2tir/test/chr22_xsCol.out";
 
-my $output = "chr2_dynamik_test.out";
+my $output = "chr2_dynamik_test_16_4_18_b.out";
 
 
 #my $output = "/home/lhelou/scripts/perl/g2TIR/new/test/chr22.out";
@@ -28,10 +25,13 @@ open (my $fh, '>', $output);
 #my $fa = "/home/lhelou/Documents/g2tir/chr1_ech_test.fa";
 #my $fa = "/home/lhelou/scripts/perl/g2TIR/new/test/chr22.fa";
 
-my $fa = "/home/lhelou/Data/chr22.fa";
-$fa = '/data/dbseq/Homo_sapiens/hg38/chr/chr22.fa';
-#$fa = 'chr1_2_test.fa';
+#my $fa = "/home/lhelou/Data/chr22.fa";
 
+
+
+#$fa = '/data/dbseq/Homo_sapiens/hg38/chr/chr22.fa';
+#$fa = 'chr1_2_test.fa';
+my $fa = "/home/lhelou/Documents/g2tir/echPos.fa";
 #my $fa = "/home/lhelou/data/human_data/grch38-p10.fa";
 
 my $max_length = 4000;
@@ -126,7 +126,6 @@ sub revCompMotif { # fonction permettant de générer le reverse comp du motif �
 
 
 sub motifDegenere {
-  #print "motifDegenere\n";
   my $cpt = 0;
   my ($pattern)=@_;
   my %patterns;
@@ -161,13 +160,6 @@ sub motifDegenere {
     my $motI=revCompMotif($pos);
     push (@patternM, $motI);
   }
-
-  # foreach my $ligne (@patternP){
-  #   print $ligne,"\n";
-  # }
-  # foreach my $ll (@patternM){
-  #   print $ll,"\n";
-  # }
   return (\@patternP, \@patternM);
 }
 
@@ -193,13 +185,9 @@ else {
 
 my $try = findPairsMotif($tabP, $tabN);
 
-
 sub findPairsMotif {
 
   my ($tabP, $tabN)= @_;
-  # foreach my $ligne (@$tabN){
-  #   print $ligne,"\n";
-  # }
   my $db = Bio::DB::Fasta -> new($fa);
   my $seqio_obj = Bio::SeqIO->new(-file => "$fa", #on recupere la sequence depuis notre fichier (arg 0)
                       -format => "fasta" );
@@ -230,105 +218,59 @@ sub findPairsMotif {
       if (@endPos){
         my $index = 0;
         for my $value (@endPos){
+        #  if ($value < ($pEnd + $min_length + $motifSize)){
           if ($value < ($pEnd + $min_length + $motifSize)){
 	    $index++;
-          } else {
-	    last
-	  }
+      #print "$pStart\t$pEnd\t$value\n";
+          }
+          else {
+            # print "$pStart\t$pEnd\t$value\n";
+	    last;
+	       }
         }
-	@endPos = $index < scalar @endPos ? @endPos[$index..$#endPos] : ();
+	   @endPos = $index < scalar @endPos ? @endPos[$index..$#endPos] : ();
+     #@endPos[$index..$#endPos];
       }
       #warn Dumper \@endPos;
       #warn sprintf "$chr term: %i -- %i elem -- range=%i (%i:%i)\n", $pEnd + $min_length, scalar @endPos,
       #scalar @endPos ? ($endPos[$#endPos]- $endPos[0]+1,$endPos[0], $endPos[$#endPos]) : (0, 0, 0);
       $minSkyline = $pEnd + $min_length;
-      $maxSkyline = $minSkyline + $max_length;
 
       my $R1 = substr($seq,$pStart,$motifSize);
       my $R1_uc = uc($R1);
       if (@endPos){
-	$startSubstr = $endPos[-1];
-	$length_extension = $max_length-($startSubstr-$pEnd - $min_length);
+      	$startSubstr = $endPos[-1];
+      	$length_extension = $max_length - ($startSubstr - $pEnd - $min_length);
       }
       else {
-	$startSubstr = $minSkyline;
-	$length_extension = $max_length;
+      	$startSubstr = $minSkyline;
+      	$length_extension = $max_length - $min_length;
       }
       #warn sprintf ("# substr %i %ib\n", $startSubstr, $length_extension);
-      my $substr = substr($seq, $startSubstr,$length_extension);
-
-      while ($substr =~m/$listN/gio){
-	my $nPos = pos($substr);
-	my $nEnd = $nPos+$startSubstr;
-	push @endPos, $nEnd;
+      my $substr = substr($seq, $startSubstr, $length_extension);
+      # print $R1,"\n";
+      # print "chaine de carac :",$startSubstr,"\t",$startSubstr+$length_extension,"\n";
+      while ($substr = ~m/$listN/gio){
+      	my $nPos = pos($substr);
+      	my $nEnd = $nPos + $startSubstr;
+        #print $nEnd,"\n";
+      	push @endPos, $nEnd;
       }
       foreach my $nEndPos (@endPos){
-	my $nStart=$nEndPos-$motifSize;
-	my $R2=substr($seq,$nStart, $motifSize);
-	my $R2_uc=revCompMotif(uc($R2));
+        # print $pStart,"\t",$nEndPos,"\n";
+	my $nStart = $nEndPos - $motifSize;
+	my $R2 = substr($seq, $nStart, $motifSize);
+	my $R2_uc = revCompMotif(uc($R2));
 
-	my $dist = distance($R1_uc,$R2_uc);
+	my $dist = distance($R1_uc, $R2_uc);
 	if ( $dist <= 1){
-	  my @out = ($chr, $pStart, $nEndPos, $nEndPos- $pStart, $dist);
-	  push @out,  ($R1, $R2) if $motifPrint;
-	  print $fh join ("\t", @out), "\n";
-	}
+	  #print $fh join ("\t", $chr, $pStart, $nEndPos, $nEndPos- $pStart, $dist);
+    #my @out = ($chr, $pStart, $nEndPos, $nEndPos- $pStart, $dist);
+    my @out = ($chr, $pStart+1, $nEndPos, $dist);
+    push @out,  ($R1, $R2) if $motifPrint;
+    print $fh join ("\t", @out), "\n";
+	     }
       }
     }
-  }
-}
-
-          __END__
-          while ($substr  =~m/$listN/gio){
-
-            $nPos = pos($substr);
-            # my $nStart=$nPos-$motifSize+$minSkyline;
-            # my $nEnd = $nPos+$minSkyline;
-            #$nStart=$nPos-$motifSize+$length_extension;
-            my $nEnd = $nPos+$length_extension;
-#            print "\n$pStart\t$nStart\t$startSubstr\t$length_extension=====\n";
-
-            #my $R2=substr($seq,$nStart, $motifSize);
-
-            # my $R1_uc = uc($R1);
-            # my $R2_uc=revCompMotif(uc($R2));
-
-            push (@endPos,$nEnd);
-            #my $PBLE = substr($seq,$pStart,($nEnd-$pStart));
-            #my $distances = distance($truc,$revsubC);
-            #print "$chr\t$start\t$endNe\t$truc\t$revsub\t$distances\n";
-
-          }
-          foreach my $endMinus (@endPos){
-            $nStart=$endMinus - $motifSize;
-            # my $R2=substr($seq,$nStart, $motifSize);
-            # my $R1_uc = uc($R1);
-            # my $R2_uc=revCompMotif(uc($R2));
-            #
-            # if ( distance($R1_uc,$R2_uc) <= 1){
-            #   my $debT = $pStart+1; #sinon samtools faidx commence une base plus tôt (décalage)
-            #         #  print "R1 : $motif1\nR2 : $motif2Temp\nREV: $motif2\n\n";
-            #         #  print $a,"\n",$b,"\n\n";
-            #   print "$chr\t$debT\t$endMinus\t",distance($R1_uc,$R2_uc);
-            #   if ($motifPrint){
-            #     print "\t$R1\t$R2";
-            #   }
-            #   print "\n";
-            # }
-          }
-            # if ( distance($R1_uc,$R2_uc) <= 1){
-            #     my $debT = $pStart+1; #sinon samtools faidx commence une base plus tôt (décalage)
-            #       #  print "R1 : $motif1\nR2 : $motif2Temp\nREV: $motif2\n\n";
-            #       #  print $a,"\n",$b,"\n\n";
-            #       push (@endPos, $nEnd);
-            # print "$chr\t$debT\t$nEnd\t",distance($R1_uc,$R2_uc);
-            # if ($motifPrint){
-            #   print "\t$R1\t$R2";
-            # }
-            # print "\n";
-            # }
-         #}
-        }
-      }
   }
 }

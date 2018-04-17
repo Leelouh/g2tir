@@ -18,7 +18,8 @@ use Getopt::Long qw/:config bundling auto_abbrev permute/;
 # ex : perl test.pl TTAAC[CAT][CT].[TCA] /home/lhelou/data/human_data/grch38-p10.fa
 
 #my $output = "/home/lhelou/Documents/g2tir/test/chr22_xsCol.out";
-my $output = "chr1_2_test.out";
+#my $output = "chr1_2_test.out";
+my $output = "chr22_gtir_test_16_4_18_b.out";
 #my $output = "/home/lhelou/Documents/g2tir/test/chr1_ech_degen.out";
 
 
@@ -29,8 +30,9 @@ open (my $fh, '>', $output);
 #my $fa = "/home/lhelou/Documents/g2tir/chr1_ech_test.fa";
 #my $fa = "/home/lhelou/scripts/perl/g2TIR/new/test/chr22.fa";
 
-my $fa = "chr1_2_test.fa";
-$fa = '/data/dbseq/Homo_sapiens/hg38/chr/chr22.fa';
+#my $fa = "chr1_2_test.fa";
+my $fa = "/home/lhelou/Documents/g2tir/echPos.fa";
+#$fa = '/data/dbseq/Homo_sapiens/hg38/chr/chr22.fa';
 #my $fa = "/home/lhelou/data/human_data/grch38-p10.fa";
 
 my $max_length = 4000;
