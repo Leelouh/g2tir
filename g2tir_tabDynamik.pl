@@ -59,7 +59,7 @@ GetOptions ("in=s"=> \$fa,
             "config"=> \$sum #file output config
             );
 
-die "You must specify a fasta file (option --fasta fasta_file)\n" if ! defined $fa;
+die "You must specify a fasta file (option --in fasta_file)\n" if ! defined $fa;
 die "You must specify a motif in iupac format (option --motif iupac_motif)\n" if ! defined $iupac;
 die "The fasta file <$fa> doesn't exist" if ! -e $fa;
 die "Maximum and minimum lengths are wrong, maxL must be higher than minL\n" if $max_length<$min_length;
