@@ -5,7 +5,10 @@ use Bio::SeqIO;
 use Data::Dumper;
 use Bio::DB::Fasta;
 use Bio::Perl;
+#use Text::Levenshtein::XS qw/distance/;
 use Text::Levenshtein::XS qw/distance/;
+#use Text::Levenshtein::Damerau::XS qw/xs_edistance/;
+#use Text::Levenshtein qw(distance);
 
 use Getopt::Long qw/:config bundling auto_abbrev permute/;
 
@@ -15,7 +18,7 @@ use Getopt::Long qw/:config bundling auto_abbrev permute/;
 
 #my $output = "/home/lhelou/Documents/g2tir/test/chr22_xsCol.out";
 
-my $output = "chr2_dynamik_test_16_4_18_b.out";
+my $output = "chr2_dynamik_test.out";
 
 
 #my $output = "/home/lhelou/scripts/perl/g2TIR/new/test/chr22.out";
@@ -31,25 +34,12 @@ open (my $fh, '>', $output);
 
 #$fa = '/data/dbseq/Homo_sapiens/hg38/chr/chr22.fa';
 #$fa = 'chr1_2_test.fa';
-my $fa = "/home/lhelou/Documents/g2tir/echPos.fa";
+#my $fa = "/home/lhelou/Documents/g2tir/echPos.fa";
 #my $fa = "/home/lhelou/data/human_data/grch38-p10.fa";
 
 my $max_length = 4000;
 my $min_length = 43;
 
-##VRAI
-#my $motifDirect = "TTAAC[CAT][CT].[TCA]";
-#my $motifRegex = "TTAACHYNH";
-#my $motifDirect = iupac($motifRegex);
-#print $motifDirect;
-
-#my $motifDirect = "TTAACTTTT";
-
-my ($motifPrint,$motifDegenerated);
-
-GetOptions ("motif" => \$motifPrint, #print les TIR
-            "degen" => \$motifDegenerated #dégénère le motif
-            );
 
 my %IUPAC = (
  A => 'A',
@@ -70,24 +60,30 @@ my %IUPAC = (
 );
 
 
+my ($motifPrint,$motifDegenerated, $out_file, $iupac, $fa);
+
+
+GetOptions ("fasta|fa=s"=> \$fa,
+            "motif=s"=> \$iupac,
+            "out=s"=> \$out_file,
+            "maxL"=> \$max_length,
+            "minL"=> \$min_length,
+            "pm" => \$motifPrint, #print les TIR
+            "degen" => \$motifDegenerated #dégénère le motif
+            );
+
+die "You must specify a fasta file (option --fasta fasta_file)\n" if ! defined $fa;
+die "You must specify a motif in iupac format (option --motif iupac_motif)\n" if ! defined $iupac;
+die "The fasta file <$fa> doesn't exist" if ! -e $fa;
+die "Maximum and minimum lengths are wrong, maxL must be higher than minL\n" if $max_length<$min_length;
 
 sub iupacToRegex {
   my ($self) = @_;
-  #print "self : $self\n";
   my $re = join '', map $IUPAC{ $_ }, split '', $self;
-  #print $re,"\n";
   return $re;
 }
 
-# print $motifDirect,"\n";
-
-my $iupac = "TTAACHYNH";
 my $motifDirect = iupacToRegex($iupac);
-#my $motifDirect = "TTAAC[CAT][CT].[TCA]";
-
-
-#my $motifDirect = $ARGV[0];
-#my $fa = $ARGV[1];
 
 sub tailleMotif {
   my ($motif) = @_;
@@ -113,10 +109,9 @@ sub tailleMotif {
 }
 
 my $motifSize = tailleMotif($motifDirect);
-#my $lengthDiv = tailleMotif($motifDirect)-1;
 
 sub revCompMotif { # fonction permettant de générer le reverse comp du motif étudié
-#print "revcom\n";
+
   my ($motif) = @_;# possible de reverse .{2} mais pas possible de reverse [AC]{2} => need amélioration
   my $rev = reverse($motif);
   $rev =~ tr/ACGT[]/TGCA][/;
@@ -160,6 +155,13 @@ sub motifDegenere {
     my $motI=revCompMotif($pos);
     push (@patternM, $motI);
   }
+
+  # foreach my $ligne (@patternP){
+  #   print $ligne,"\n";
+  # }
+  # foreach my $ll (@patternM){
+  #   print $ll,"\n";
+  # }
   return (\@patternP, \@patternM);
 }
 
@@ -185,9 +187,13 @@ else {
 
 my $try = findPairsMotif($tabP, $tabN);
 
+
 sub findPairsMotif {
 
   my ($tabP, $tabN)= @_;
+  # foreach my $ligne (@$tabN){
+  #   print $ligne,"\n";
+  # }
   my $db = Bio::DB::Fasta -> new($fa);
   my $seqio_obj = Bio::SeqIO->new(-file => "$fa", #on recupere la sequence depuis notre fichier (arg 0)
                       -format => "fasta" );
@@ -196,7 +202,6 @@ sub findPairsMotif {
   my $listN = join ('|', @$tabN);
 
   while ( my $seq_obj = $seqio_obj->next_seq ) {
-    #my %h;
     my $seq = $seq_obj-> seq;
     my $chr = $seq_obj->display_id;
 
@@ -219,17 +224,14 @@ sub findPairsMotif {
         my $index = 0;
         for my $value (@endPos){
         #  if ($value < ($pEnd + $min_length + $motifSize)){
-          if ($value < ($pEnd + $min_length + $motifSize)){
+          if ($value < ($pEnd + $min_length+$motifSize)){
 	    $index++;
-      #print "$pStart\t$pEnd\t$value\n";
-          }
-          else {
-            # print "$pStart\t$pEnd\t$value\n";
-	    last;
-	       }
+          } else {
+	    last
+	  }
         }
+#        print
 	   @endPos = $index < scalar @endPos ? @endPos[$index..$#endPos] : ();
-     #@endPos[$index..$#endPos];
       }
       #warn Dumper \@endPos;
       #warn sprintf "$chr term: %i -- %i elem -- range=%i (%i:%i)\n", $pEnd + $min_length, scalar @endPos,
@@ -240,37 +242,89 @@ sub findPairsMotif {
       my $R1_uc = uc($R1);
       if (@endPos){
       	$startSubstr = $endPos[-1];
-      	$length_extension = $max_length - ($startSubstr - $pEnd - $min_length);
+      	$length_extension = $max_length-($startSubstr-$pEnd-$min_length);
       }
       else {
       	$startSubstr = $minSkyline;
-      	$length_extension = $max_length - $min_length;
+      	$length_extension = $max_length-$min_length;
       }
       #warn sprintf ("# substr %i %ib\n", $startSubstr, $length_extension);
-      my $substr = substr($seq, $startSubstr, $length_extension);
-      # print $R1,"\n";
-      # print "chaine de carac :",$startSubstr,"\t",$startSubstr+$length_extension,"\n";
-      while ($substr = ~m/$listN/gio){
+      my $substr = substr($seq, $startSubstr,$length_extension);
+
+      while ($substr =~m/$listN/gio){
       	my $nPos = pos($substr);
-      	my $nEnd = $nPos + $startSubstr;
-        #print $nEnd,"\n";
+      	my $nEnd = $nPos+$startSubstr;
       	push @endPos, $nEnd;
       }
       foreach my $nEndPos (@endPos){
-        # print $pStart,"\t",$nEndPos,"\n";
-	my $nStart = $nEndPos - $motifSize;
-	my $R2 = substr($seq, $nStart, $motifSize);
-	my $R2_uc = revCompMotif(uc($R2));
+	my $nStart=$nEndPos-$motifSize;
+	my $R2=substr($seq,$nStart, $motifSize);
+	my $R2_uc=revCompMotif(uc($R2));
 
-	my $dist = distance($R1_uc, $R2_uc);
+	my $dist = distance($R1_uc,$R2_uc);
 	if ( $dist <= 1){
 	  #print $fh join ("\t", $chr, $pStart, $nEndPos, $nEndPos- $pStart, $dist);
-    #my @out = ($chr, $pStart, $nEndPos, $nEndPos- $pStart, $dist);
+#    my @out = ($chr, $pStart, $nEndPos, $nEndPos- $pStart, $dist);
     my @out = ($chr, $pStart+1, $nEndPos, $dist);
     push @out,  ($R1, $R2) if $motifPrint;
     print $fh join ("\t", @out), "\n";
 	     }
       }
     }
+  }
+}
+
+          __END__
+          while ($substr  =~m/$listN/gio){
+
+            $nPos = pos($substr);
+            # my $nStart=$nPos-$motifSize+$minSkyline;
+            # my $nEnd = $nPos+$minSkyline;
+            #$nStart=$nPos-$motifSize+$length_extension;
+            my $nEnd = $nPos+$length_extension;
+#            print "\n$pStart\t$nStart\t$startSubstr\t$length_extension=====\n";
+
+            #my $R2=substr($seq,$nStart, $motifSize);
+
+            # my $R1_uc = uc($R1);
+            # my $R2_uc=revCompMotif(uc($R2));
+
+            push (@endPos,$nEnd);
+            #my $PBLE = substr($seq,$pStart,($nEnd-$pStart));
+            #my $distances = distance($truc,$revsubC);
+            #print "$chr\t$start\t$endNe\t$truc\t$revsub\t$distances\n";
+
+          }
+          foreach my $endMinus (@endPos){
+            $nStart=$endMinus - $motifSize;
+            # my $R2=substr($seq,$nStart, $motifSize);
+            # my $R1_uc = uc($R1);
+            # my $R2_uc=revCompMotif(uc($R2));
+            #
+            # if ( distance($R1_uc,$R2_uc) <= 1){
+            #   my $debT = $pStart+1; #sinon samtools faidx commence une base plus tôt (décalage)
+            #         #  print "R1 : $motif1\nR2 : $motif2Temp\nREV: $motif2\n\n";
+            #         #  print $a,"\n",$b,"\n\n";
+            #   print "$chr\t$debT\t$endMinus\t",distance($R1_uc,$R2_uc);
+            #   if ($motifPrint){
+            #     print "\t$R1\t$R2";
+            #   }
+            #   print "\n";
+            # }
+          }
+            # if ( distance($R1_uc,$R2_uc) <= 1){
+            #     my $debT = $pStart+1; #sinon samtools faidx commence une base plus tôt (décalage)
+            #       #  print "R1 : $motif1\nR2 : $motif2Temp\nREV: $motif2\n\n";
+            #       #  print $a,"\n",$b,"\n\n";
+            #       push (@endPos, $nEnd);
+            # print "$chr\t$debT\t$nEnd\t",distance($R1_uc,$R2_uc);
+            # if ($motifPrint){
+            #   print "\t$R1\t$R2";
+            # }
+            # print "\n";
+            # }
+         #}
+        }
+      }
   }
 }
