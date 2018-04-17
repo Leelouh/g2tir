@@ -13,29 +13,10 @@ use Text::Levenshtein::XS qw/distance/;
 use Getopt::Long qw/:config bundling auto_abbrev permute/;
 
 # lancement/usage :
-# perl test.pl motif genome
-# ex : perl test.pl TTAAC[CAT][CT].[TCA] /home/lhelou/data/human_data/grch38-p10.fa
-
-#my $output = "/home/lhelou/Documents/g2tir/test/chr22_xsCol.out";
-
-my $output = "chr2_dynamik_test.out";
+# perl g2tir_tabDynamik.pl --pm --degen --motif motif_iupac --fa fasta_file
+# ex : time perl g2tir_tabDynamik.pl --pm --degen --motif TTAACHYNH --fa /home/lhelou/Data/chr22.fa
 
 
-#my $output = "/home/lhelou/scripts/perl/g2TIR/new/test/chr22.out";
-open (my $fh, '>', $output);
-
-
-#my $fa = "/home/lhelou/Documents/g2tir/chr1_ech_test.fa";
-#my $fa = "/home/lhelou/scripts/perl/g2TIR/new/test/chr22.fa";
-
-#my $fa = "/home/lhelou/Data/chr22.fa";
-
-
-
-#$fa = '/data/dbseq/Homo_sapiens/hg38/chr/chr22.fa';
-#$fa = 'chr1_2_test.fa';
-#my $fa = "/home/lhelou/Documents/g2tir/echPos.fa";
-#my $fa = "/home/lhelou/data/human_data/grch38-p10.fa";
 
 my $max_length = 4000;
 my $min_length = 43;
@@ -60,12 +41,15 @@ my %IUPAC = (
 );
 
 
-my ($motifPrint,$motifDegenerated, $out_file, $iupac, $fa);
+my ($motifPrint,$motifDegenerated, $iupac, $fa);
 
+my $time = time;
+
+my $output = "g2tir_out.$time";
 
 GetOptions ("fasta|fa=s"=> \$fa,
             "motif=s"=> \$iupac,
-            "out=s"=> \$out_file,
+            "out=s"=> \$output,
             "maxL"=> \$max_length,
             "minL"=> \$min_length,
             "pm" => \$motifPrint, #print les TIR
@@ -76,6 +60,11 @@ die "You must specify a fasta file (option --fasta fasta_file)\n" if ! defined $
 die "You must specify a motif in iupac format (option --motif iupac_motif)\n" if ! defined $iupac;
 die "The fasta file <$fa> doesn't exist" if ! -e $fa;
 die "Maximum and minimum lengths are wrong, maxL must be higher than minL\n" if $max_length<$min_length;
+
+
+
+open (my $fh, '>', $output);
+
 
 sub iupacToRegex {
   my ($self) = @_;
