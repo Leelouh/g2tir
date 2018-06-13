@@ -16,7 +16,7 @@ use Getopt::Long qw/:config bundling auto_abbrev permute/;
 # perl g2tir_tabDynamik.pl --pm --degen --motif motif_iupac --fa fasta_file
 # ex : time perl g2tir_tabDynamik.pl --pm --degen --motif TTAACHYNH --fa /home/lhelou/Data/chr22.fa
 
-
+# test : time perl g2tir_tabDynamik.pl --degen --pm --motif TTAAYYYNNNTCATTCCT --in /home/lhelou/data/human_data/grch38-p10.fa --config --fasta --out TTAAYYYNNNTCATTCCT_12_06_18
 
 my $max_length = 4000;
 my $min_length = 43;
