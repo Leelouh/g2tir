@@ -111,7 +111,6 @@ sub revCompMotif { # fonction permettant de générer le reverse comp du motif �
   return $rev;
 }
 
-
 sub motifDegenere {
   my $cpt = 0;
   my ($pattern)=@_;
