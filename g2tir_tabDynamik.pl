@@ -21,7 +21,6 @@ use Getopt::Long qw/:config bundling auto_abbrev permute/;
 my $max_length = 4000;
 my $min_length = 43;
 
-
 my %IUPAC = (
  A => 'A',
  C => 'C',
@@ -40,33 +39,36 @@ my %IUPAC = (
  N => '[ACGT]',
 );
 
-
-my ($motifPrint,$motifDegenerated, $iupac, $fa, $out_fasta, $sum, $fhfasta);
+my ($motifPrint,$motifDegenerated, $iupac, $fa, $out_fasta, $sum, $fhfasta, $R1, $R2);
 
 my $time = time;
 
 my $output = "g2tir_out.$time";
-
 
 GetOptions ("in=s"=> \$fa,
             "motif=s"=> \$iupac,
             "out=s"=> \$output,
             "maxL"=> \$max_length,
             "minL"=> \$min_length,
-            "pm" => \$motifPrint, #print les TIR
-            "degen" => \$motifDegenerated, #dégénère le motif
+            "pm" => \$motifPrint,           #print les TIR
+            "degen" => \$motifDegenerated,  #dégénère le motif
             "fasta|fa"=> \$out_fasta,
-            "config"=> \$sum #file output config
+            "config"=> \$sum,               #file output config
+            "R1=s"=> \$R1,
+            "R2=s"=> \$R2
             );
 
-die "You must specify a fasta file (option --in fasta_file)\n" if ! defined $fa;
-die "You must specify a motif in iupac format (option --motif iupac_motif)\n" if ! defined $iupac;
+die "You must specify a fasta file (option --in fasta_file)\n" if (! defined $fa);
+
+die "You must specify a motif in iupac format (option --motif iupac_motif)\n" if (! defined $iupac);
+die "Your iupac format is empty\n" if ($iupac eq "");
 die "The fasta file <$fa> doesn't exist" if ! -e $fa;
 die "Maximum and minimum lengths are wrong, maxL must be higher than minL\n" if $max_length<$min_length;
+die "You have to choose between equal TIRs (--motif) or different TIRs (--R1 and --R2)" if (defined $iupac && (defined $R1 || defined $R2));
 
 if ($out_fasta){
   my $output_fasta = "$output.fa";
-  open ($fhfasta,'>', $output_fasta) or die "Could not open file '$output_fasta' $!";;
+  open ($fhfasta,'>', $output_fasta) or die "Could not open file '$output_fasta' $!";
 }
 
 open (my $fh, '>', $output);
@@ -78,11 +80,12 @@ sub iupacToRegex {
 }
 
 my $motifDirect = iupacToRegex($iupac);
+print "mon motif : ",$motifDirect;
 
 sub tailleMotif {
   my ($motif) = @_;
-  my $cpt_lettre = 0; #initialisation du compteur de la taille du motif
-  my @motifD_tab = split //,$motif; #découpage de la string en tableau
+  my $cpt_lettre = 0;                     #initialisation du compteur de la taille du motif
+  my @motifD_tab = split //,$motif;       #découpage de la string en tableau
   foreach my $l (@motifD_tab){            #on parcourt le tableau
     $cpt_lettre++;                        #à chaque lettre on incrémente le compteur
     if ($l =~ m/\]/){                     #si on rencontre un ] on "décrémente" le compteur
@@ -91,7 +94,7 @@ sub tailleMotif {
   }
   my $x = "\\[[A-Z]*\\]";                 #on affecte à x un motif en particulier
                                           # le motif en question [[A-Z]*]
-  my @c = $motif =~ m/$x/g;         # on récupère dans le tableau chacun des matchs
+  my @c = $motif =~ m/$x/g;               # on récupère dans le tableau chacun des matchs
   my $count = @c;                         # dans $count on retrouve le nombre de case
   foreach my $car (@c){                   # on parcourt chacune des cases
     my @nbc = $car =~ m/[A-Z]/g;          # compte le nombre de lettre à l'intérieur de []
@@ -101,9 +104,9 @@ sub tailleMotif {
   return $cpt_lettre;
 }
 
-my $motifSize = tailleMotif($motifDirect);
+my $motifSize;# = tailleMotif($motifDirect);
 
-sub revCompMotif { # fonction permettant de générer le reverse comp du motif étudié
+sub revCompMotif {                         # fonction permettant de générer le reverse comp du motif étudié
   my ($motif) = @_;
   my $rev = reverse($motif);
   $rev =~ tr/ACGT[]/TGCA][/;
@@ -111,6 +114,8 @@ sub revCompMotif { # fonction permettant de générer le reverse comp du motif �
   return $rev;
 }
 
+my $revMomo = revCompMotif($motifDirect);
+print "motif indirect : ",$revMomo;
 
 sub motifDegenere {
   my $cpt = 0;
@@ -142,7 +147,13 @@ sub motifDegenere {
     }
   }
   for my $pos (@patternP){
-    my $motI=revCompMotif($pos);
+    my $motI;
+    if (defined $iupac){
+      $motI=revCompMotif($pos);
+    }
+    elsif (defined $R1){
+      $motI=$R2;
+    }
     push (@patternM, $motI);
   }
   return (\@patternP, \@patternM);
@@ -187,6 +198,8 @@ sub findPairsMotif {
     my $length_extension;
 
     while ($seq =~ m/$listP/gio){
+      $motifSize=length($listP);
+      print "taille motif : $motifSize\n";
       $chr =~ s/(chr* ).*/$1/;
       my $pPos = pos($seq);
       my $pStart = $pPos - $motifSize;
