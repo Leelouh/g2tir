@@ -54,8 +54,8 @@ my $output = "g2tir_out.$time";
 GetOptions ("in=s"=> \$fa,
             "motif=s"=> \$iupac,
             "out=s"=> \$output,
-            "maxL"=> \$max_length,
-            "minL"=> \$min_length,
+            "maxL=i"=> \$max_length,
+            "minL=i"=> \$min_length,
             "pm" => \$motifPrint, #print les TIR
             "degen" => \$motifDegenerated, #dégénère le motif
             "fasta|fa"=> \$out_fasta,
