@@ -44,7 +44,7 @@ my %IUPAC = (
 );
 
 
-my ($motifPrint,$motifDegenerated, $iupac, $fa, $out_fasta, $sum, $fhfasta, $printScore, $TIR1, $TIR2, $score);
+my ($motifPrint,$motifDegenerated, $iupac, $fa, $out_fasta, $sum, $fhfasta, $printScore, $TIR1, $TIR2, $score, $TSD);
 
 my $time = time;
 
@@ -63,7 +63,8 @@ GetOptions ("in=s"=> \$fa,
             "printScore"=> \$printScore,
             "TIR1|R1=s"=> \$TIR1,
             "TIR2|R2=s"=> \$TIR2,
-            "score"=> \$score
+            "score=i"=> \$score,
+            "TSD=i"=> \$TSD
             );
 
 die "You must specify a fasta file (option --in fasta_file)\n" if ! defined $fa;
@@ -159,6 +160,9 @@ sub motifDegenere {
     push (@patternP, $copy);
     }
   }
+  for my $ff (@patternP){
+    print $ff,"\t";
+  }
   # for my $pos (@patternP){
   #   my $motI=revCompMotif($pos);
   #   push (@patternM, $motI);
@@ -244,6 +248,10 @@ sub findPairsMotif {
       }
       $minSkyline = $pEnd + $min_length;
       my $R1 = substr($seq, $pStart, $motifSizeDirect);
+      my $TSD_R1;
+      if ($TSD) {
+        $TSD_R1 = substr($seq,$pStart-$TSD,$TSD);
+      }
       # print "startSub : $startSubstr\n";
       # print "R1 : $R1\n";
       # print "pStart : $pStart\n";
@@ -275,6 +283,13 @@ sub findPairsMotif {
       foreach my $nEndPos (@endPos){
       	my $nStart = $nEndPos - $motifSizeIndirect;
       	my $R2 = substr($seq, $nStart, $motifSizeIndirect);
+
+        my $TSD_R2;
+        if ($TSD) {
+#          $TSD_R2 = substr($seq,$nStart+$motifSizeIndirect+$TSD,$TSD);
+          $TSD_R2 = substr($seq,$nEndPos,$TSD);
+        }
+
       	my $R2_uc = revCompMotif(uc($R2));
 
       	my $dist = distance($R1_uc, $R2_uc);
@@ -299,6 +314,7 @@ sub findPairsMotif {
               my @out = ($chr, $pStart, $nEndPos);
               push @out, ($R1, $R2) if $motifPrint;
               push @out, ($dist) if $printScore;
+              push @out, ($TSD_R1, $TSD_R2) if $TSD;
               print $fh join ("\t", @out), "\n";
               if ($out_fasta){
     #            $pStart =$pStart+1;
@@ -313,6 +329,7 @@ sub findPairsMotif {
             my @out = ($chr, $pStart, $nEndPos);
             push @out, ($R1, $R2) if $motifPrint;
             push @out, ($dist) if $printScore;
+            push @out, ($TSD_R1, $TSD_R2) if $TSD;
             print $fh join ("\t", @out), "\n";
             if ($out_fasta){
   #            $pStart =$pStart+1;
