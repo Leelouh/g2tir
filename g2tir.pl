@@ -6,51 +6,25 @@ use Data::Dumper;
 use Bio::DB::Fasta;
 use Bio::Perl;
 #use Text::Levenshtein::XS qw/distance/;
-use Text::LevenshteinXS qw/distance/;
+use Text::Levenshtein::XS qw/distance/;
 #use Text::Levenshtein::Damerau::XS qw/xs_edistance/;
 #use Text::Levenshtein qw(distance);
-#use Devel::NYTProf;
+
 
 use Getopt::Long qw/:config bundling auto_abbrev permute/;
 
 # lancement/usage :
-# perl test.pl motif genome
-# ex : perl test.pl TTAAC[CAT][CT].[TCA] /home/lhelou/data/human_data/grch38-p10.fa
+# perl g2tir_tabDynamik.pl --pm --degen --motif motif_iupac --fa fasta_file
+# ex : time perl g2tir_tabDynamik.pl --pm --degen --motif TTAACHYNH --fa /home/lhelou/Data/chr22.fa
 
-#my $output = "/home/lhelou/Documents/g2tir/test/chr22_xsCol.out";
-#my $output = "chr1_2_test.out";
-my $output = "chr22_gtir_test_16_4_18_b.out";
-#my $output = "/home/lhelou/Documents/g2tir/test/chr1_ech_degen.out";
-
-
-#my $output = "/home/lhelou/scripts/perl/g2TIR/new/test/chr22.out";
-open (my $fh, '>', $output);
-
-
-#my $fa = "/home/lhelou/Documents/g2tir/chr1_ech_test.fa";
-#my $fa = "/home/lhelou/scripts/perl/g2TIR/new/test/chr22.fa";
-
-#my $fa = "chr1_2_test.fa";
-my $fa = "/home/lhelou/Documents/g2tir/echPos.fa";
-#$fa = '/data/dbseq/Homo_sapiens/hg38/chr/chr22.fa';
-#my $fa = "/home/lhelou/data/human_data/grch38-p10.fa";
+# test : time perl g2tir_tabDynamik.pl --degen --pm --motif TTAAYYYNNNTCATTCCT --in /home/lhelou/data/human_data/grch38-p10.fa --config --fasta --out TTAAYYYNNNTCATTCCT_12_06_18
 
 my $max_length = 4000;
 my $min_length = 43;
 
-##VRAI
-#my $motifDirect = "TTAAC[CAT][CT].[TCA]";
-#my $motifRegex = "TTAACHYNH";
-#my $motifDirect = iupac($motifRegex);
-#print $motifDirect;
+#my $score = 1;
 
-#my $motifDirect = "TTAACTTTT";
-
-my ($motifPrint,$motifDegenerated);
-
-GetOptions ("motif" => \$motifPrint, #print les TIR
-            "degen" => \$motifDegenerated #dégénère le motif
-            );
+my $maxScore = 10;
 
 my %IUPAC = (
  A => 'A',
@@ -71,46 +45,65 @@ my %IUPAC = (
 );
 
 
+my ($motifPrint,$motifDegenerated, $iupac, $fa, $out_fasta, $sum, $fhfasta, $printScore, $TIR1, $TIR2, $score, $TSD);
+
+my $time = time;
+
+my $output = "g2tir_out.$time";
+
+my ($nomprog) = $0 =~ /([^\/]+)\d*$/;
+my $cmd_line = $nomprog." @ARGV";
+
+GetOptions ("in=s"=> \$fa,
+            "motif=s"=> \$iupac,
+            "out=s"=> \$output,
+            "maxL=i"=> \$max_length,
+            "minL=i"=> \$min_length,
+            "pm" => \$motifPrint, #print les TIR
+            "degen" => \$motifDegenerated, #dégénère le motif
+            "fasta|fa"=> \$out_fasta,
+            "config"=> \$sum, #file output config
+            "printScore"=> \$printScore,
+            "TIR1|R1=s"=> \$TIR1,
+            "TIR2|R2=s"=> \$TIR2,
+            "score=i"=> \$score,
+            "TSD=i"=> \$TSD
+            );
+
+die "You must specify a fasta file (option --in fasta_file)\n" if ! defined $fa;
+die "You must specify a motif in iupac format (option --motif iupac_motif)\n" if ! defined ($iupac || $TIR1);
+die "The fasta file <$fa> doesn't exist" if ! -e $fa;
+die "Maximum and minimum lengths are wrong, maxL must be higher than minL\n" if $max_length<$min_length;
+
+if ($out_fasta){
+  my $output_fasta = "$output.fa";
+  open ($fhfasta,'>', $output_fasta) or die "Could not open file '$output_fasta' $!";;
+}
+
+open (my $fh, '>', $output);
 
 sub iupacToRegex {
   my ($self) = @_;
-  print "self : $self\n";
   my $re = join '', map $IUPAC{ $_ }, split '', $self;
-  #print $re,"\n";
   return $re;
 }
 
-# print $motifDirect,"\n";
+my ($motifDirect, $motifIndirect);
 
-my $iupac = "TTAACHYNH";
-my $motifDirect = iupacToRegex($iupac);
-#my $motifDirect = "TTAAC[CAT][CT].[TCA]";
+if ($iupac){
+  $motifDirect = iupacToRegex($iupac);
+}
+elsif ($TIR1){
+  $motifDirect = iupacToRegex($TIR1);
+  $motifIndirect = iupacToRegex($TIR2);
+}
 
-#print $ttt;
-
-# GetOptions ("help|?|h" => \$help,
-#             "debug+" => \$debug,
-#             "only_debug" => \$only_debug,
-#             #"mite_name" => \$mite_name,
-#             "base_name=s" => \$base_name,
-#             "dir=s" => \$out_dir,
-#             "bed" => \$bed_format,
-#             "rm" => \$rm_input,
-#             "tag=s" => \$tag,
-#             "annot=s" => \$annot
-#             #"trsp=s" => \$str_trsp #exemple : HSMAR1,1287,36
-#             );
-
-
-#my $fa = '/home/lhelou/data/human_data/grch38-p10.fa';
-
-#my $motifDirect = $ARGV[0];
-#my $fa = $ARGV[1];
+#print $motifDirect,"\t",$motifIndirect,"\n";
 
 sub tailleMotif {
   my ($motif) = @_;
   my $cpt_lettre = 0; #initialisation du compteur de la taille du motif
-  my @motifD_tab = split //,$motif; #découpage de lacoucou string en tableau
+  my @motifD_tab = split //,$motif; #découpage de la string en tableau
   foreach my $l (@motifD_tab){            #on parcourt le tableau
     $cpt_lettre++;                        #à chaque lettre on incrémente le compteur
     if ($l =~ m/\]/){                     #si on rencontre un ] on "décrémente" le compteur
@@ -126,41 +119,32 @@ sub tailleMotif {
     my $nbc = @nbc;
     $cpt_lettre = $cpt_lettre - $nbc;     #déduction des lettres du compteur de la taille du motif
   }
-  #print $cpt_lettre;
   return $cpt_lettre;
 }
 
-my $motifSize = tailleMotif($motifDirect);
-#my $lengthDiv = tailleMotif($motifDirect)-1;
+my $motifSizeDirect = tailleMotif($motifDirect);
+#my $motifSizeIndirect = tailleMotif($motifIndirect);
 
 sub revCompMotif { # fonction permettant de générer le reverse comp du motif étudié
-#print "revcom\n";
-  my ($motif) = @_;# possible de reverse .{2} mais pas possible de reverse [AC]{2} => need amélioration
+  my ($motif) = @_;
   my $rev = reverse($motif);
   $rev =~ tr/ACGT[]/TGCA][/;
   $rev =~ s/\}(.*)\{\./\.{$1\}/;
   return $rev;
 }
 
-#my $t = revCompMotif("AATT");
-#print $t;
-#__END__
-
 sub motifDegenere {
-  #print "motifDegenere\n";
   my $cpt = 0;
   my ($pattern)=@_;
   my %patterns;
   my %pattAll;
   my (@patternP, @patternM);
-
   for (my $i=0; $i<length($pattern); $i++){
     my $id = $cpt;
     $cpt++;
     my $copy = $pattern;
     my $ss = substr ($pattern,$i,1);
-
-    if ( ($ss ne "]" ) && ($ss ne "[")){
+    if ( ($ss ne "]") && ($ss ne "[") ){
       substr ($copy,$i,1) = ".";
       push (@patternP, $copy);
     }
@@ -177,147 +161,223 @@ sub motifDegenere {
     push (@patternP, $copy);
     }
   }
-
-  for my $pos (@patternP){
-    my $motI=revCompMotif($pos);
-    push (@patternM, $motI);
-  }
-
-  # foreach my $ligne (@patternP){
-  #   print $ligne,"\n";
+  # for my $ff (@patternP){
+  #   print $ff,"\t";
   # }
-  # foreach my $ll (@patternM){
-  #   print $ll,"\n";
+  # for my $pos (@patternP){
+  #   my $motI=revCompMotif($pos);
+  #   push (@patternM, $motI);
   # }
-  return (\@patternP, \@patternM);
+  return (\@patternP);#, \@patternM);
 }
 
 sub notDegenerated {
   my ($mo) = @_;
   my (@patternP, @patternM);
   push (@patternP, $mo);
-
-  my $revmo = revCompMotif($mo);
+  my $revmo;
+  if ($iupac){
+    $revmo = revCompMotif($mo);
+  }
+  elsif ($TIR1){
+    $revmo = $TIR2;
+  }
   push (@patternM, $revmo);
-
-  return (\@patternP, \@patternM)
+  return (\@patternP, \@patternM);
 }
 
 #option --degen : si activé, le motif est dégénéré, sinon, non
 my ($tabP, $tabN);
+
 if ($motifDegenerated){
-  ($tabP, $tabN) = motifDegenere($motifDirect);
+  if ($iupac){
+    my $revMotif = revCompMotif($motifDirect);
+    $tabP = motifDegenere($motifDirect);
+    $tabN = motifDegenere($revMotif);
+  }
+   elsif ($TIR1){
+#     ($tabP, $tabN) = motifDegenere($motifDirect,$motifIndirect);
+    $tabP = motifDegenere($motifDirect);
+    $tabN = motifDegenere($motifIndirect);
+   }
 }
 else {
-  ($tabP, $tabN) = notDegenerated($motifDirect);
+  if ($iupac){
+    ($tabP, $tabN) = notDegenerated($motifDirect);
+  }
+  elsif ($TIR1){
+    ($tabP, $tabN) = notDegenerated($motifDirect);
+  }
 }
-
 my $try = findPairsMotif($tabP, $tabN);
 
-# sub motifSingle {
-#   #print "motifDegenere\n";
-
-#   my ($motif)=@_;
-#   my $cpt = 0;
-#   my @listMotifs;
-# #  print length($motif);
-#   for (my $i=0; $i<length($motif); $i++){
-#     my $id = $cpt;
-#     $cpt++;
-#     my $copy = $motif;
-#       substr ($copy,$i,1) = ".";
-#       push (@listMotifs, $copy);
-#   }
-
-#   # foreach my $t(@listMotifs){
-#   #   print $t,"\n";
-#   # }
-#   return (\@listMotifs);
-# }
-
-
 sub findPairsMotif {
-
   my ($tabP, $tabN)= @_;
-  # foreach my $ligne (@$tabN){
-  #   print $ligne,"\n";
-  # }
-  my $db = Bio::DB::Fasta -> new($fa);
-  my $seqio_obj = Bio::SeqIO->new(-file => "$fa", #on recupere la sequence depuis notre fichier (arg 0)
-                                  -format => "fasta" );
+   # foreach my $ttruc (@$tabP){
+	#    print $ttruc;
+   # }
+#  print @$tabP,"\t",@$tabN,"\n";
+  my $seqio_obj = Bio::SeqIO->new( -file => "$fa",
+                      -format => "fasta" );
 
   my $listP = join ('|', @$tabP);
   my $listN = join ('|', @$tabN);
-
+#  print $listP,"\n";
   while ( my $seq_obj = $seqio_obj->next_seq ) {
-    my %h;
     my $seq = $seq_obj-> seq;
     my $chr = $seq_obj->display_id;
-    my ($start, $end, $subSeq);
-
-
+    my @endPos;
+    my $maxSkyline;
+    my $minSkyline;
+    my $startSubstr;
+    my $length_extension;
 
     while ($seq =~ m/$listP/gio){
       $chr =~ s/(chr* ).*/$1/;
-        #print $chr;
-      my $pos=pos($seq); #pos en partant de la fin de notre séquence
-
-
-      my $start = $pos - $motifSize; #$lengthDiv;#- 8;
-      my $end = $pos;
-      my $deb = $end+$min_length;
-
-      my $R1 = substr($seq,$start,$motifSize);
+      my $pPos = pos($seq);
+      my $pStart = $pPos - $motifSizeDirect;
+      my $pEnd = $pPos;
+      if (@endPos){
+        my $index = 0;
+        for my $value (@endPos){
+          if ($value < ($pEnd + $min_length + $motifSizeDirect)){
+            $index++;
+          }
+          else {
+	           last;
+          }
+        }
+        @endPos = $index < scalar @endPos ? @endPos[$index..$#endPos] : ();
+      }
+      $minSkyline = $pEnd + $min_length;
+      my $R1 = substr($seq, $pStart, $motifSizeDirect);
+  #    print "R1 :",$R1,"\n";
+      my $TSD_R1;
+      if ($TSD) {
+        $TSD_R1 = substr($seq,$pStart-$TSD,$TSD);
+      }
       my $R1_uc = uc($R1);
-
-      my $substr = substr($seq, $deb,$max_length);
-
-      while ($substr  =~m/$listN/gio){
-
-	my $posNe = pos($substr);
-	my $start2=$posNe-$motifSize+$deb;
-	my $endNe = $posNe+$deb;
-
-	my $R2=substr($seq,$start2, $motifSize);
-
-	my $R2_uc=revCompMotif(uc($R2));
-
-	my $PBLE = substr($seq,$start,($endNe-$start));
-
-	if ( distance($R1_uc,$R2_uc) <= 1){
-	  my $debT = $start+1; #sinon samtools faidx commence une base plus tôt (décalage)
-	  print $fh "$chr\t$debT\t$endNe\t",distance($R1_uc,$R2_uc);
-	  if ($motifPrint){
-	    print $fh "\t$R1\t$R2";
-	  }
-	  print $fh "\n";
+      if (@endPos){
+        if ($startSubstr < length($seq)){
+      	$startSubstr = $endPos[-1] ;
 	}
+      	$length_extension = $max_length - ($startSubstr - $pEnd - $min_length);
+      }
+      else {
+      	$startSubstr = $minSkyline;
+
+      	$length_extension = $max_length - $min_length;
+}
+	my $substr;
+	next if ($startSubstr > length($seq));
+
+	if ($startSubstr + $length_extension > length($seq)){
+		$length_extension = length($seq)-$startSubstr;
+	}
+
+#  $startSubstr = $startSubstr - $motifSizeDirect+1;
+
+      $substr = substr($seq, $startSubstr, $length_extension);
+  #$_ = $substr;
+  #    while (/(?=($listN))/g){
+
+
+      while ($substr =~ m/(?=($listN))/gio){#} && defined $substr){
+  ##TRUE    while ($substr =~ m/$listN/gio){#} && defined $substr){
+    # while (/(?=$listN)/gio){
+        #print "sous seq : ",$substr,"\n";
+        #my $poulet = $1;
+        #my $t = pos($substr);
+        my $nPos=pos($substr)+$motifSizeDirect;
+##TRUE        my $nPos = pos($substr);
+      	my $nEnd = $nPos + $startSubstr;
+      #  my $inter = substr($substr, $nPos-$motifSizeDirect,$motifSizeDirect);
+    #    print "MY INTER : $inter\n";
+      	push @endPos, $nEnd;
+      }
+
+      my $motifSizeIndirect;
+      if ($iupac){
+        $motifSizeIndirect = $motifSizeDirect;
+	}
+      elsif ($TIR1){
+        $motifSizeIndirect = tailleMotif($motifIndirect);
+      }
+
+      foreach my $nEndPos (@endPos){
+      	my $nStart = $nEndPos - $motifSizeIndirect;
+      	my $R2 = substr($seq, $nStart, $motifSizeIndirect);
+
+        my $TSD_R2;
+        if ($TSD) {
+#          $TSD_R2 = substr($seq,$nStart+$motifSizeIndirect+$TSD,$TSD);
+          $TSD_R2 = substr($seq,$nEndPos,$TSD);
+        }
+
+      	my $R2_uc = revCompMotif(uc($R2));
+
+	# if ($R1_uc eq $R2_uc){
+	# 	print "R1 : $R1_uc\nR2 : $R2_uc\nYOUHOUUU\n";
+	# }
+      	my $dist = distance($R1_uc, $R2_uc);
+
+        my $scoreComp;#=0;
+
+        if (defined $score){
+          $scoreComp = $score;
+        }
+        else {
+          $scoreComp = $maxScore;
+          if ($R1){
+            $scoreComp = 200;
+          }
+        }
+
+        if ($iupac or $R1){
+            if ($dist <= $scoreComp){
+    #    my @out = ($chr, $pStart, $nEndPos, $nEndPos- $pStart, $dist);
+    #          $pStart=$pStart+1; #mise à niveau pour standart extraction fasta
+              my @out = ($chr, $pStart, $nEndPos);
+              push @out, ($R1, $R2) if $motifPrint;
+              push @out, ($dist) if $printScore;
+              push @out, ($TSD_R1, $TSD_R2) if $TSD;
+              print $fh join ("\t", @out), "\n";
+              if ($out_fasta){
+    #            $pStart =$pStart+1;
+                my $PBLE = $seq_obj->subseq($pStart+1, $nEndPos);
+                print $fhfasta ">$chr:$pStart-$nEndPos\n$PBLE\n";
+              }
+            }
+          }
+
+  #       elsif ($R1){
+  #         if ($dist <= $scoreComp){
+  #           my @out = ($chr, $pStart, $nEndPos);
+  #           push @out, ($R1, $R2) if $motifPrint;
+  #           push @out, ($dist) if $printScore;
+  #           push @out, ($TSD_R1, $TSD_R2) if $TSD;
+  #           print $fh join ("\t", @out), "\n";
+  #           if ($out_fasta){
+  # #            $pStart =$pStart+1;
+  #             my $PBLE = $seq_obj->subseq($pStart+1, $nEndPos);
+  #             print $fhfasta ">$chr:$pStart-$nEndPos\n$PBLE\n";
+  #           }
+  #         }
+  #       }
+#}
+
       }
     }
   }
 }
 
-#aln("TTAACTTTT","aaaagtgaa");
-sub aln {
-  my ($s1,$s2)=@_;
-#  print "S1 : $s1, S2 : $s2\n";
-  my @parms;
-  my $cpt=0;
-  $s1=revCompMotif($s1);
-  my ($align1, $align2);
-  for (my $i = 1; $i <= length($s1); $i++){
-    my $letter1 = substr($s1, $i-1, 1);
-    my $letter2 = substr($s2, $i-1, 1);
-    $letter2=uc($letter2);
-    if ($letter1 ne $letter2){
-      $cpt++;
-      #print "$letter1\t$letter2\n";
-    }
-    last if $cpt==2;
-    $align1 .= $letter1;
-    $align2 .= $letter2;
-  }
-  #last if $cpt==2;
-  #print "Alignement : \n$align1\n$align2";
-  return ($align1,$align2);
+if ($sum){
+  my $file_sum = "$output.config";
+  open (my $fhsum, '>', $file_sum);
+  print $fhsum "cmd line : $cmd_line\n";
+  print $fhsum "motif : $iupac\nfasta : $fa\n" if ($iupac);
+  print $fhsum "motif was degenerated\n" if ($motifDegenerated);
+  print $fhsum "fasta file was generated\n" if ($out_fasta);
 }
+
+#time perl ~/scripts/perl/g2TIR/g2tir/g2tir_impr.pl --printScore --fasta --config --pm --motif TTAANNNN --in sra_tblastn_wgs.fasta --score 0 --out sra_tblastn_wgs/g2tir_results/TTAANNNN &
