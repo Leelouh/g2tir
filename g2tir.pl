@@ -5,24 +5,16 @@ use Bio::SeqIO;
 use Data::Dumper;
 use Bio::DB::Fasta;
 use Bio::Perl;
-#use Text::Levenshtein::XS qw/distance/;
 use Text::Levenshtein::XS qw/distance/;
-#use Text::Levenshtein::Damerau::XS qw/xs_edistance/;
-#use Text::Levenshtein qw(distance);
-
-
 use Getopt::Long qw/:config bundling auto_abbrev permute/;
 
 # lancement/usage :
-# perl g2tir_tabDynamik.pl --pm --degen --motif motif_iupac --fa fasta_file
-# ex : time perl g2tir_tabDynamik.pl --pm --degen --motif TTAACHYNH --fa /home/lhelou/Data/chr22.fa
+# perl g2tir.pl --pm --motif motif_iupac --in fasta_file
 
-# test : time perl g2tir_tabDynamik.pl --degen --pm --motif TTAAYYYNNNTCATTCCT --in /home/lhelou/data/human_data/grch38-p10.fa --config --fasta --out TTAAYYYNNNTCATTCCT_12_06_18
+# time perl ~/scripts/perl/g2TIR/g2tir/g2tir.pl --score 0 --min 800  --printScore --config --pm --motif TTAANNNN --in /home/lhelou/ancestralSpecies/Analyses/phylogenieSequencesProches/pgbd5_vs_uro/outDir/debug_g2tir/QLIY01000744_1_57307_64203.fa --out t5
 
-my $max_length = 4000;
+my $max_length = 6000;
 my $min_length = 43;
-
-#my $score = 1;
 
 my $maxScore = 10;
 
@@ -67,7 +59,7 @@ GetOptions ("in=s"=> \$fa,
             "TIR1|R1=s"=> \$TIR1,
             "TIR2|R2=s"=> \$TIR2,
             "score=i"=> \$score,
-            "TSD=i"=> \$TSD
+            "TSD=i"=> \$TSD #print les bases à l'extérieur
             );
 
 die "You must specify a fasta file (option --in fasta_file)\n" if ! defined $fa;
@@ -97,8 +89,6 @@ elsif ($TIR1){
   $motifDirect = iupacToRegex($TIR1);
   $motifIndirect = iupacToRegex($TIR2);
 }
-
-#print $motifDirect,"\t",$motifIndirect,"\n";
 
 sub tailleMotif {
   my ($motif) = @_;
@@ -161,13 +151,6 @@ sub motifDegenere {
     push (@patternP, $copy);
     }
   }
-  # for my $ff (@patternP){
-  #   print $ff,"\t";
-  # }
-  # for my $pos (@patternP){
-  #   my $motI=revCompMotif($pos);
-  #   push (@patternM, $motI);
-  # }
   return (\@patternP);#, \@patternM);
 }
 
@@ -196,7 +179,6 @@ if ($motifDegenerated){
     $tabN = motifDegenere($revMotif);
   }
    elsif ($TIR1){
-#     ($tabP, $tabN) = motifDegenere($motifDirect,$motifIndirect);
     $tabP = motifDegenere($motifDirect);
     $tabN = motifDegenere($motifIndirect);
    }
@@ -213,16 +195,10 @@ my $try = findPairsMotif($tabP, $tabN);
 
 sub findPairsMotif {
   my ($tabP, $tabN)= @_;
-   # foreach my $ttruc (@$tabP){
-	#    print $ttruc;
-   # }
-#  print @$tabP,"\t",@$tabN,"\n";
   my $seqio_obj = Bio::SeqIO->new( -file => "$fa",
                       -format => "fasta" );
-
   my $listP = join ('|', @$tabP);
   my $listN = join ('|', @$tabN);
-#  print $listP,"\n";
   while ( my $seq_obj = $seqio_obj->next_seq ) {
     my $seq = $seq_obj-> seq;
     my $chr = $seq_obj->display_id;
@@ -275,24 +251,13 @@ sub findPairsMotif {
 		$length_extension = length($seq)-$startSubstr;
 	}
 
-#  $startSubstr = $startSubstr - $motifSizeDirect+1;
-
       $substr = substr($seq, $startSubstr, $length_extension);
-  #$_ = $substr;
-  #    while (/(?=($listN))/g){
-
 
       while ($substr =~ m/(?=($listN))/gio){#} && defined $substr){
   ##TRUE    while ($substr =~ m/$listN/gio){#} && defined $substr){
-    # while (/(?=$listN)/gio){
-        #print "sous seq : ",$substr,"\n";
-        #my $poulet = $1;
-        #my $t = pos($substr);
         my $nPos=pos($substr)+$motifSizeDirect;
 ##TRUE        my $nPos = pos($substr);
       	my $nEnd = $nPos + $startSubstr;
-      #  my $inter = substr($substr, $nPos-$motifSizeDirect,$motifSizeDirect);
-    #    print "MY INTER : $inter\n";
       	push @endPos, $nEnd;
       }
 
