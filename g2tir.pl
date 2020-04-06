@@ -7,6 +7,7 @@ use Bio::DB::Fasta;
 use Bio::Perl;
 use Text::Levenshtein::XS qw/distance/;
 use Getopt::Long qw/:config bundling auto_abbrev permute/;
+use Pod::Usage;
 
 # lancement/usage :
 # perl g2tir.pl --pm --motif motif_iupac --in fasta_file
@@ -46,7 +47,10 @@ my $output = "g2tir_out.$time";
 my ($nomprog) = $0 =~ /([^\/]+)\d*$/;
 my $cmd_line = $nomprog." @ARGV";
 
-GetOptions ("in=s"=> \$fa,
+my $help = 0;
+
+GetOptions ("help|?"=> \$help,
+            "in=s"=> \$fa,
             "motif=s"=> \$iupac,
             "out=s"=> \$output,
             "maxL=i"=> \$max_length,
@@ -60,12 +64,21 @@ GetOptions ("in=s"=> \$fa,
             "TIR2|R2=s"=> \$TIR2,
             "score=i"=> \$score,
             "TSD=i"=> \$TSD #print les bases à l'extérieur
-            );
+            )
+            or pod2usage(2);
+pod2usage(1) if $help;
 
-die "You must specify a fasta file (option --in fasta_file)\n" if ! defined $fa;
-die "You must specify a motif in iupac format (option --motif iupac_motif)\n" if ! defined ($iupac || $TIR1);
-die "The fasta file <$fa> doesn't exist" if ! -e $fa;
-die "Maximum and minimum lengths are wrong, maxL must be higher than minL\n" if $max_length<$min_length;
+pod2usage(2) if ! defined ($fa && $iupac || $TIR1);
+
+# die "You must specify a fasta file (option --in fasta_file)\n" if ! defined $fa;
+# die "You must specify a motif in iupac format (option --motif iupac_motif)\n" if ! defined ($iupac || $TIR1);
+# die "The fasta file <$fa> doesn't exist" if ! -e $fa;
+# die "Maximum and minimum lengths are wrong, maxL must be higher than minL\n" if $max_length<$min_length;
+
+# die "You must specify a fasta file (option --in fasta_file)\n" if ! defined $fa;
+# die "You must specify a motif in iupac format (option --motif iupac_motif)\n" if ! defined ($iupac || $TIR1);
+# die "The fasta file <$fa> doesn't exist" if ! -e $fa;
+# die "Maximum and minimum lengths are wrong, maxL must be higher than minL\n" if $max_length<$min_length;
 
 if ($out_fasta){
   my $output_fasta = "$output.fa";
@@ -81,6 +94,14 @@ sub iupacToRegex {
 }
 
 my ($motifDirect, $motifIndirect);
+
+# if ($TIR1){
+#   $motifDirect = iupacToRegex($R1);
+# }
+# elsif ($TIR1){
+#   $motifDirect = iupacToRegex($TIR1);
+#   $motifIndirect = iupacToRegex($TIR2);
+# }
 
 if ($iupac){
   $motifDirect = iupacToRegex($iupac);
@@ -163,7 +184,7 @@ sub notDegenerated {
     $revmo = revCompMotif($mo);
   }
   elsif ($TIR1){
-    $revmo = $TIR2;
+    $revmo = $motifIndirect;
   }
   push (@patternM, $revmo);
   return (\@patternP, \@patternM);
@@ -191,6 +212,9 @@ else {
     ($tabP, $tabN) = notDegenerated($motifDirect);
   }
 }
+
+
+
 my $try = findPairsMotif($tabP, $tabN);
 
 sub findPairsMotif {
@@ -298,7 +322,7 @@ sub findPairsMotif {
           }
         }
 
-        if ($iupac or $R1){
+    #    if ($iupac){
             if ($dist <= $scoreComp){
     #    my @out = ($chr, $pStart, $nEndPos, $nEndPos- $pStart, $dist);
     #          $pStart=$pStart+1; #mise à niveau pour standart extraction fasta
@@ -313,9 +337,9 @@ sub findPairsMotif {
                 print $fhfasta ">$chr:$pStart-$nEndPos\n$PBLE\n";
               }
             }
-          }
+          #}
 
-  #       elsif ($R1){
+  #       elsif ($TIR1){
   #         if ($dist <= $scoreComp){
   #           my @out = ($chr, $pStart, $nEndPos);
   #           push @out, ($R1, $R2) if $motifPrint;
@@ -344,5 +368,57 @@ if ($sum){
   print $fhsum "motif was degenerated\n" if ($motifDegenerated);
   print $fhsum "fasta file was generated\n" if ($out_fasta);
 }
+
+__END__
+
+=head1 G2TIR
+
+sample - Using truc truc
+
+=head1 SYNOPSIS
+
+g2tir.pl --score 0 --motif --in file.fasta --out output_file
+
+--help for more options
+
+=head1 OPTIONS
+
+=over 8
+
+=item B<--help>
+
+Print a brief help message and exits.
+
+=item B<--in> Fasta file [required]
+
+Fasta file in which the ITRs are searched for
+
+=item B<--motif> motif for ITR in iupac format [required]
+
+=item B<--R1> motif for ITR1 in iupac format if R1 and R2 are different [required]
+
+=item B<--R2> motif for ITR2 in iupac format if R1 and R2 are different [required]
+
+=item B<--score>
+
+=item B<--out> output file with the results in table format
+
+=item B<--maxL> Maximum distance between two ITRs (INT default : 6400 nt)
+
+=item B<--minL> Minimum distance between two ITRs (INT default : 43 nt)
+
+=item B<--pm> Print motifs of ITR founded in the output file
+
+=item B<--printScore> Print the score in the output file
+
+=item B<--TSD> Print the TSD (4nt before each TIR) in the output file
+
+=item B<--degen> Degenerate the motif submitted
+
+=item B<--fasta> Generate a fasta file with the sequences identified
+
+=item B<--config> Generate a config file with the option selected
+
+=cut
 
 #time perl ~/scripts/perl/g2TIR/g2tir/g2tir_impr.pl --printScore --fasta --config --pm --motif TTAANNNN --in sra_tblastn_wgs.fasta --score 0 --out sra_tblastn_wgs/g2tir_results/TTAANNNN &
