@@ -9,11 +9,6 @@ use Text::Levenshtein::XS qw/distance/;
 use Getopt::Long qw/:config bundling auto_abbrev permute/;
 use Pod::Usage;
 
-# lancement/usage :
-# perl g2tir.pl --pm --motif motif_iupac --in fasta_file
-
-# time perl ~/scripts/perl/g2TIR/g2tir/g2tir.pl --score 0 --min 800  --printScore --config --pm --motif TTAANNNN --in /home/lhelou/ancestralSpecies/Analyses/phylogenieSequencesProches/pgbd5_vs_uro/outDir/debug_g2tir/QLIY01000744_1_57307_64203.fa --out t5
-
 my $max_length = 6000;
 my $min_length = 43;
 
@@ -56,33 +51,23 @@ GetOptions ("help|?"=> \$help,
             "maxL=i"=> \$max_length,
             "minL=i"=> \$min_length,
             "pm" => \$motifPrint, #print les TIR
-            "degen" => \$motifDegenerated, #dégénère le motif
+            "degen" => \$motifDegenerated,
             "fasta|fa"=> \$out_fasta,
             "config"=> \$sum, #file output config
             "printScore"=> \$printScore,
             "TIR1|R1=s"=> \$TIR1,
             "TIR2|R2=s"=> \$TIR2,
             "score=i"=> \$score,
-            "TSD=i"=> \$TSD #print les bases à l'extérieur
+            "TSD=i"=> \$TSD
             )
             or pod2usage(2);
 pod2usage(1) if $help;
 
 pod2usage(2) if ! defined ($fa && $iupac || $TIR1);
 
-# die "You must specify a fasta file (option --in fasta_file)\n" if ! defined $fa;
-# die "You must specify a motif in iupac format (option --motif iupac_motif)\n" if ! defined ($iupac || $TIR1);
-# die "The fasta file <$fa> doesn't exist" if ! -e $fa;
-# die "Maximum and minimum lengths are wrong, maxL must be higher than minL\n" if $max_length<$min_length;
-
-# die "You must specify a fasta file (option --in fasta_file)\n" if ! defined $fa;
-# die "You must specify a motif in iupac format (option --motif iupac_motif)\n" if ! defined ($iupac || $TIR1);
-# die "The fasta file <$fa> doesn't exist" if ! -e $fa;
-# die "Maximum and minimum lengths are wrong, maxL must be higher than minL\n" if $max_length<$min_length;
-
 if ($out_fasta){
   my $output_fasta = "$output.fa";
-  open ($fhfasta,'>', $output_fasta) or die "Could not open file '$output_fasta' $!";;
+  open ($fhfasta,'>', $output_fasta) or die "Could not open file '$output_fasta' $!";
 }
 
 open (my $fh, '>', $output);
@@ -95,14 +80,6 @@ sub iupacToRegex {
 
 my ($motifDirect, $motifIndirect);
 
-# if ($TIR1){
-#   $motifDirect = iupacToRegex($R1);
-# }
-# elsif ($TIR1){
-#   $motifDirect = iupacToRegex($TIR1);
-#   $motifIndirect = iupacToRegex($TIR2);
-# }
-
 if ($iupac){
   $motifDirect = iupacToRegex($iupac);
 }
@@ -113,30 +90,29 @@ elsif ($TIR1){
 
 sub tailleMotif {
   my ($motif) = @_;
-  my $cpt_lettre = 0; #initialisation du compteur de la taille du motif
-  my @motifD_tab = split //,$motif; #découpage de la string en tableau
-  foreach my $l (@motifD_tab){            #on parcourt le tableau
-    $cpt_lettre++;                        #à chaque lettre on incrémente le compteur
-    if ($l =~ m/\]/){                     #si on rencontre un ] on "décrémente" le compteur
+  my $cpt_lettre = 0; #initialization of the motif size counter
+  my @motifD_tab = split //,$motif; #cutting the string into an array
+  foreach my $l (@motifD_tab){
+    $cpt_lettre++;
+    if ($l =~ m/\]/){
       $cpt_lettre--;
     }
   }
-  my $x = "\\[[A-Z]*\\]";                 #on affecte à x un motif en particulier
+  my $x = "\\[[A-Z]*\\]";               #we assign x a particular pattern
                                           # le motif en question [[A-Z]*]
-  my @c = $motif =~ m/$x/g;         # on récupère dans le tableau chacun des matchs
-  my $count = @c;                         # dans $count on retrouve le nombre de case
-  foreach my $car (@c){                   # on parcourt chacune des cases
-    my @nbc = $car =~ m/[A-Z]/g;          # compte le nombre de lettre à l'intérieur de []
+  my @c = $motif =~ m/$x/g;         # each match is retrieved from the table
+  my $count = @c;                         # in $count we find the number of boxes
+  foreach my $car (@c){                   # we go through each of the boxes
+    my @nbc = $car =~ m/[A-Z]/g;          # counts the number of letters within []
     my $nbc = @nbc;
-    $cpt_lettre = $cpt_lettre - $nbc;     #déduction des lettres du compteur de la taille du motif
+    $cpt_lettre = $cpt_lettre - $nbc;     #deduction of letters from the counter from the size of the motif
   }
   return $cpt_lettre;
 }
 
 my $motifSizeDirect = tailleMotif($motifDirect);
-#my $motifSizeIndirect = tailleMotif($motifIndirect);
 
-sub revCompMotif { # fonction permettant de générer le reverse comp du motif étudié
+sub revCompMotif { # function to generate the reverse comp of the studied pattern
   my ($motif) = @_;
   my $rev = reverse($motif);
   $rev =~ tr/ACGT[]/TGCA][/;
@@ -172,7 +148,7 @@ sub motifDegenere {
     push (@patternP, $copy);
     }
   }
-  return (\@patternP);#, \@patternM);
+  return (\@patternP);
 }
 
 sub notDegenerated {
@@ -190,7 +166,7 @@ sub notDegenerated {
   return (\@patternP, \@patternM);
 }
 
-#option --degen : si activé, le motif est dégénéré, sinon, non
+#option --degen : if activated, the pattern is degenerated, otherwise, no
 my ($tabP, $tabN);
 
 if ($motifDegenerated){
@@ -212,8 +188,6 @@ else {
     ($tabP, $tabN) = notDegenerated($motifDirect);
   }
 }
-
-
 
 my $try = findPairsMotif($tabP, $tabN);
 
@@ -277,10 +251,8 @@ sub findPairsMotif {
 
       $substr = substr($seq, $startSubstr, $length_extension);
 
-      while ($substr =~ m/(?=($listN))/gio){#} && defined $substr){
-  ##TRUE    while ($substr =~ m/$listN/gio){#} && defined $substr){
+      while ($substr =~ m/(?=($listN))/gio){
         my $nPos=pos($substr)+$motifSizeDirect;
-##TRUE        my $nPos = pos($substr);
       	my $nEnd = $nPos + $startSubstr;
       	push @endPos, $nEnd;
       }
@@ -299,18 +271,14 @@ sub findPairsMotif {
 
         my $TSD_R2;
         if ($TSD) {
-#          $TSD_R2 = substr($seq,$nStart+$motifSizeIndirect+$TSD,$TSD);
           $TSD_R2 = substr($seq,$nEndPos,$TSD);
         }
 
       	my $R2_uc = revCompMotif(uc($R2));
 
-	# if ($R1_uc eq $R2_uc){
-	# 	print "R1 : $R1_uc\nR2 : $R2_uc\nYOUHOUUU\n";
-	# }
       	my $dist = distance($R1_uc, $R2_uc);
 
-        my $scoreComp;#=0;
+        my $scoreComp;
 
         if (defined $score){
           $scoreComp = $score;
@@ -322,39 +290,17 @@ sub findPairsMotif {
           }
         }
 
-    #    if ($iupac){
             if ($dist <= $scoreComp){
-    #    my @out = ($chr, $pStart, $nEndPos, $nEndPos- $pStart, $dist);
-    #          $pStart=$pStart+1; #mise à niveau pour standart extraction fasta
               my @out = ($chr, $pStart, $nEndPos);
               push @out, ($R1, $R2) if $motifPrint;
               push @out, ($dist) if $printScore;
               push @out, ($TSD_R1, $TSD_R2) if $TSD;
               print $fh join ("\t", @out), "\n";
               if ($out_fasta){
-    #            $pStart =$pStart+1;
                 my $PBLE = $seq_obj->subseq($pStart+1, $nEndPos);
                 print $fhfasta ">$chr:$pStart-$nEndPos\n$PBLE\n";
               }
             }
-          #}
-
-  #       elsif ($TIR1){
-  #         if ($dist <= $scoreComp){
-  #           my @out = ($chr, $pStart, $nEndPos);
-  #           push @out, ($R1, $R2) if $motifPrint;
-  #           push @out, ($dist) if $printScore;
-  #           push @out, ($TSD_R1, $TSD_R2) if $TSD;
-  #           print $fh join ("\t", @out), "\n";
-  #           if ($out_fasta){
-  # #            $pStart =$pStart+1;
-  #             my $PBLE = $seq_obj->subseq($pStart+1, $nEndPos);
-  #             print $fhfasta ">$chr:$pStart-$nEndPos\n$PBLE\n";
-  #           }
-  #         }
-  #       }
-#}
-
       }
     }
   }
@@ -391,23 +337,23 @@ Print a brief help message and exits.
 
 =item B<--in> Fasta file [required]
 
-Fasta file in which the ITRs are searched for
+Fasta file in which the TIRs are searched for
 
-=item B<--motif> motif for ITR in iupac format [required]
+=item B<--motif> motif for TIR in iupac format [required]
 
-=item B<--R1> motif for ITR1 in iupac format if R1 and R2 are different [required]
+=item B<--R1> motif for TIR1 in iupac format if R1 and R2 are different [required]
 
-=item B<--R2> motif for ITR2 in iupac format if R1 and R2 are different [required]
+=item B<--R2> motif for TIR2 in iupac format if R1 and R2 are different [required]
 
-=item B<--score>
+=item B<--score> Score between two TIRs based on Levenshtein::XS (INT default : 10) for perfect TIRs used --score 0
 
 =item B<--out> output file with the results in table format
 
-=item B<--maxL> Maximum distance between two ITRs (INT default : 6400 nt)
+=item B<--maxL> Maximum distance between two TIRs (INT default : 6400 nt)
 
-=item B<--minL> Minimum distance between two ITRs (INT default : 43 nt)
+=item B<--minL> Minimum distance between two TIRs (INT default : 43 nt)
 
-=item B<--pm> Print motifs of ITR founded in the output file
+=item B<--pm> Print motifs of TIR founded in the output file
 
 =item B<--printScore> Print the score in the output file
 
@@ -420,5 +366,3 @@ Fasta file in which the ITRs are searched for
 =item B<--config> Generate a config file with the option selected
 
 =cut
-
-#time perl ~/scripts/perl/g2TIR/g2tir/g2tir_impr.pl --printScore --fasta --config --pm --motif TTAANNNN --in sra_tblastn_wgs.fasta --score 0 --out sra_tblastn_wgs/g2tir_results/TTAANNNN &

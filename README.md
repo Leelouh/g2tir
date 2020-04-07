@@ -22,7 +22,7 @@ usage : g2tir.pl [--motif IUPAC] [--in file.fasta] [--out output_file]
 
 **Optional arguments**
 ```
-    --score INT       Score between two TIRs based on Levenshtein::XS (--score 0 for perfect TIR)
+    --score INT       Score between two TIRs based on Levenshtein::XS (INT default : 10) (--score 0 for perfect TIR)
     --printScore      Print the score in the output file
     --maxL INT        Maximum distance between two TIRs (INT default : 6400 nt)
     --minL INT        Minimum distance between two TIRs (INT default : 43 nt)
@@ -31,4 +31,9 @@ usage : g2tir.pl [--motif IUPAC] [--in file.fasta] [--out output_file]
     --degen           Degenerate the motif submitted (used the option --score to keep only similar TIRs)
     --fasta           Generate a fasta file with the sequences flanked by TIRs identified
     --config          Generate a config file with the option selected
+```
+
+**Exemple**
+```
+./g2tir.pl --score 0 --fasta --min 30  --printScore --config --pm --motif TTAANNN --in /data/hg38/chr/chr19.fa --out output_chr19.txt
 ```
